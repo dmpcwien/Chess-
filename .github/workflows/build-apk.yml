@@ -24,8 +24,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Android SDK einrichten
-        uses: android-actions/setup-android@v3
+      - 
 
       - name: Android SDK Pakete installieren
         shell: bash
