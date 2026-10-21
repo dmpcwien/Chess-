@@ -13,3 +13,9 @@ services:
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
+      # Database is an existing Free Render PostgreSQL service in this workspace.
+      # Do not put connection credentials in GitHub.
+      - key: RATING_DATABASE_URL
+        fromDatabase:
+          name: schach-1001-ratings
+          property: connectionString
