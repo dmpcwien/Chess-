@@ -22,6 +22,12 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+from fastapi import Header
+
+try:
+    from .ratings import get_store
+except ImportError:  # uvicorn server:app when cwd is online/
+    from ratings import get_store
 
 MODES = {
     "standard": "Klassisches Schach",
@@ -58,15 +64,24 @@ class RoomRequest(BaseModel):
     name: str = Field(min_length=1, max_length=32)
     mode: str = "standard"
     max_opponents: int = Field(default=5, ge=1, le=20)
+    rated: bool = False
+    player_token: str | None = None
 
 
 class JoinRequest(BaseModel):
     name: str = Field(min_length=1, max_length=32)
+    player_token: str | None = None
 
 
 class QuickPlayRequest(BaseModel):
     name: str = Field(min_length=1, max_length=32)
     mode: str = "standard"
+    rated: bool = False
+    player_token: str | None = None
+
+
+class PlayerRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=32)
 
 
 @dataclass
@@ -75,6 +90,10 @@ class Match:
     guest_token: str
     guest_name: str
     forced_winner: str | None = None
+    guest_player_id: str | None = None
+    rating_change: dict | None = None
+    rating_applied: bool = False
+    rating_message: str = ""
 
 
 @dataclass
@@ -85,6 +104,8 @@ class Room:
     host_name: str
     capacity: int
     public: bool = False
+    rated: bool = False
+    host_player_id: str | None = None
     matches: dict[str, Match] = field(default_factory=dict)
     connections: dict[str, set[WebSocket]] = field(default_factory=dict)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -129,13 +150,49 @@ def room_details(room: Room) -> dict:
     return {
         "code": room.code, "mode": room.mode, "host_name": room.host_name,
         "guests": len(room.matches), "max_opponents": room.capacity,
-        "public": room.public,
+        "public": room.public, "rated": room.rated,
     }
 
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "active_rooms": len(rooms)}
+    return {
+        "ok": True, "active_rooms": len(rooms),
+        "rating_storage": "postgresql" if os.getenv("RATING_DATABASE_URL") else "sqlite",
+        "rating_storage_durable": bool(os.getenv("RATING_DATABASE_URL")),
+    }
+
+
+def rated_player(token: str | None):
+    player = get_store().player_for_token(token)
+    if not player:
+        raise HTTPException(401, "Für gewertete Partien zuerst ein Spielerprofil erstellen.")
+    return player
+
+
+@app.post("/api/players")
+def register_player(req: PlayerRequest):
+    try:
+        return get_store().create_player(req.name)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@app.get("/api/players/me")
+def player_profile(authorization: str | None = Header(default=None)):
+    token = authorization.removeprefix("Bearer ").strip() if authorization else None
+    return rated_player(token)
+
+
+@app.get("/api/ratings/{player_id}/{mode}")
+def read_rating(player_id: str, mode: str):
+    if mode not in MODES or mode == "simul":
+        raise HTTPException(422, "Keine eigene Wertung für diesen Modus.")
+    rating = get_store().get_rating(player_id, mode)
+    if rating is None:
+        raise HTTPException(404, "Spielerprofil nicht gefunden.")
+    return rating
+
 
 
 @app.get("/api/modes")
@@ -147,6 +204,9 @@ def modes():
 def create_room(req: RoomRequest):
     if req.mode not in MODES:
         raise HTTPException(422, "Unbekannter Spielmodus.")
+    if req.rated and req.mode == "simul":
+        raise HTTPException(422, "Simultanschach ist nur ungewertet verfügbar.")
+    player = rated_player(req.player_token) if req.rated else None
     # Expire inactive in-memory rooms instead of letting abandoned games grow forever.
     now = time.monotonic()
     for old_code, old_room in list(rooms.items()):
@@ -160,8 +220,9 @@ def create_room(req: RoomRequest):
         code = "".join(secrets.choice(alphabet) for _ in range(8))
     token = secrets.token_urlsafe(32)
     room = Room(
-        code, req.mode, token, req.name.strip(),
+        code, req.mode, token, player["name"] if player else req.name.strip(),
         req.max_opponents if req.mode == "simul" else 1,
+        rated=req.rated, host_player_id=player["id"] if player else None,
     )
     rooms[code] = room
     return {**room_details(room), "token": token, "role": "host"}
@@ -177,16 +238,23 @@ async def quickplay(req: QuickPlayRequest):
     """Pair two anonymous players server-side, or create a short-lived waiting room."""
     if req.mode not in MODES or req.mode == "simul":
         raise HTTPException(422, "Für diesen Modus gibt es keine automatische Gegnersuche.")
+    player = rated_player(req.player_token) if req.rated else None
     async with quickplay_lock:
         now = time.monotonic()
         for room in list(rooms.values()):
-            if (room.public and room.mode == req.mode and not room.matches
+            if (room.public and room.mode == req.mode and room.rated == req.rated
+                    and not room.matches
+                    and (not player or room.host_player_id != player["id"])
                     and now - room.last_active < 90
                     and (room.connections.get(room.host_token) or now - room.last_active < 10)):
                 async with room.lock:
                     board_id = secrets.token_hex(6)
                     token = secrets.token_urlsafe(32)
-                    room.matches[board_id] = Match(new_board(req.mode), token, req.name.strip())
+                    room.matches[board_id] = Match(
+                        new_board(req.mode), token,
+                        player["name"] if player else req.name.strip(),
+                        guest_player_id=player["id"] if player else None,
+                    )
                     room.last_active = now
                     return {**room_details(room), "token": token, "role": "guest",
                             "board_id": board_id, "matched": True}
@@ -197,7 +265,10 @@ async def quickplay(req: QuickPlayRequest):
         while code in rooms:
             code = "".join(secrets.choice(alphabet) for _ in range(8))
         token = secrets.token_urlsafe(32)
-        room = Room(code, req.mode, token, req.name.strip(), 1, public=True)
+        room = Room(
+            code, req.mode, token, player["name"] if player else req.name.strip(), 1,
+            public=True, rated=req.rated, host_player_id=player["id"] if player else None,
+        )
         rooms[code] = room
         return {**room_details(room), "token": token, "role": "host",
                 "matched": False}
@@ -206,12 +277,18 @@ async def quickplay(req: QuickPlayRequest):
 @app.post("/api/rooms/{code}/join")
 async def join_room(code: str, req: JoinRequest):
     room = room_or_404(code)
+    player = rated_player(req.player_token) if room.rated else None
     async with room.lock:
         if len(room.matches) >= room.capacity:
             raise HTTPException(409, "Diese Partie ist bereits voll.")
+        if player and player["id"] == room.host_player_id:
+            raise HTTPException(409, "Eine gewertete Partie gegen dich selbst ist nicht erlaubt.")
         board_id = secrets.token_hex(6)
         token = secrets.token_urlsafe(32)
-        room.matches[board_id] = Match(new_board(room.mode), token, req.name.strip())
+        room.matches[board_id] = Match(
+            new_board(room.mode), token, player["name"] if player else req.name.strip(),
+            guest_player_id=player["id"] if player else None,
+        )
         room.last_active = time.monotonic()
         return {
             **room_details(room), "token": token,
@@ -236,6 +313,15 @@ def snapshot(room: Room, token: str) -> dict:
                      (not host and board.turn == chess.BLACK)))
         data.append({
             "id": board_id, "guest_name": match.guest_name,
+            "rated": room.rated,
+            "rating_change": match.rating_change,
+            "rating_message": match.rating_message,
+            "rating": (get_store().get_rating(
+                room.host_player_id if host else match.guest_player_id, room.mode
+            ) if room.rated else None),
+            "opponent_rating": (get_store().get_rating(
+                match.guest_player_id if host else room.host_player_id, room.mode
+            ) if room.rated else None),
             "fen": board.fen(), "chess960": board.chess960,
             "turn": "white" if board.turn else "black",
             "moves": [board.uci(move) for move in board.legal_moves] if can_move else [],
@@ -248,6 +334,32 @@ def snapshot(room: Room, token: str) -> dict:
         "role": "host" if host else "guest",
         "boards": data, "your_board": own_board,
     }
+
+
+def record_rating_if_finished(room: Room, board_id: str, match: Match):
+    """Run only on server-validated terminal states; never trust a client result."""
+    if not room.rated or match.rating_applied:
+        return
+    result = ("1-0" if match.forced_winner == "white" else
+              "0-1" if match.forced_winner == "black" else
+              match.board.outcome(claim_draw=False).result()
+              if match.board.is_game_over(claim_draw=False) else None)
+    if result is None:
+        return
+    # Abort very short games without changing ratings.
+    if len(match.board.move_stack) < 4:
+        match.rating_message = "Nicht gewertet: weniger als 4 Halbzüge gespielt."
+        match.rating_applied = True
+        return
+    try:
+        match.rating_change = get_store().finish_game(
+            f"{room.code}:{board_id}", room.mode,
+            room.host_player_id, match.guest_player_id, result,
+        )
+        match.rating_applied = True
+    except Exception:
+        # Never invent a successful rating update when DB persistence failed.
+        match.rating_message = "Rating konnte nicht gespeichert werden. Bitte Server prüfen."
 
 
 async def broadcast(room: Room):
@@ -271,6 +383,8 @@ async def ws_game(ws: WebSocket, code: str, token: str):
     await ws.accept()
     async with room.lock:
         room.connections.setdefault(token, set()).add(ws)
+        for board_id, match in room.matches.items():
+            record_rating_if_finished(room, board_id, match)
         await broadcast(room)
     try:
         while True:
@@ -314,6 +428,7 @@ async def ws_game(ws: WebSocket, code: str, token: str):
                         await ws.send_json({"type": "error", "message": "Illegaler Zug."})
                         continue
                     board.push(move)
+                record_rating_if_finished(room, board_id, match)
                 await broadcast(room)
     except (WebSocketDisconnect, RuntimeError, ValueError):
         pass
