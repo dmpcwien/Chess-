@@ -59,8 +59,7 @@ function rule(){
 }
 $("mode").onchange=rule;
 $("rated").onchange=showRating;
-rule();
-$("server").value=localStorage.getItem("chess1001_online_server")||(/^https?:$/.test(location.protocol)?location.origin:"");
+$("server").value=localStorage.getItem("chess1001_online_server")||(/^https?:$/.test(location.protocol)?location.origin:"https://schach-1001-online.onrender.com");
 $("backApp").hidden=location.protocol!=="file:";
 $("backApp").onclick=()=>location.assign("index.html");
 $("name").value=localStorage.getItem("chess1001_online_name")||"";
@@ -240,7 +239,7 @@ function render(){
 }
 const previous=localStorage.getItem("chess1001_online_session");
 if(previous){try{session=JSON.parse(previous);$("server").value=session.server;connect();}catch(_){localStorage.removeItem("chess1001_online_session");}}
-showRating();
+rule();
 checkRatingStorage();
 })();
 </script></body></html>
