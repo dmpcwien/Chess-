@@ -124,7 +124,7 @@ class RatingStore:
     """Two-player atomic updates, once per completed game, independent pools."""
 
     def __init__(self, path=None, database_url=None):
-        self.url = database_url if database_url is not None else os.getenv("RATING_DATABASE_URL", "")
+        self.url = database_url if database_url is not None else (os.getenv("LONG_TERM_RATING_DATABASE_URL") or os.getenv("RATING_DATABASE_URL", ""))
         self.pg = bool(self.url)
         if self.pg:
             # Do not import unless the feature is configured.
