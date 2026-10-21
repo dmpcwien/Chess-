@@ -11,7 +11,7 @@
 <label>Dein Spielername</label><input id="name" maxlength="32" placeholder="Spieler">
 <label>Spielmodus</label><select id="mode"></select><p id="rules" class="rules"></p>
 <div id="limitRow"><label>Gegner beim Simultanschach</label><select id="limit"><option>2</option><option selected>5</option><option>10</option><option>20</option></select></div>
-<div class="actions"><button id="create" class="primary">Partie erstellen</button></div>
+<div class="actions"><button id="quickplay" class="primary">⚡ Schnelles Online-Spiel</button></div><div class="actions"><button id="create" class="secondary">Private Partie erstellen</button></div>
 <label>Einladungscode eines Freundes</label><input id="joinCode" maxlength="8" placeholder="z. B. A7BC9D2Q" autocapitalize="characters">
 <div class="actions"><button id="join" class="secondary">Partie beitreten</button></div>
 <p class="note">Für Internet-Partien muss ein erreichbarer HTTPS-Spielserver eingerichtet sein. Die Regeln und Züge werden dort geprüft. Stockfish-Hilfe ist in Online-Partien ausgeschaltet.</p>
@@ -59,6 +59,12 @@ async function request(path,body){
 function save(s){session=s;localStorage.setItem("chess1001_online_session",JSON.stringify(s));localStorage.setItem("chess1001_online_server",server());localStorage.setItem("chess1001_online_name",$("name").value.trim());}
 $("create").onclick=async()=>{
  try{const d=await request("/api/rooms",{name:$("name").value.trim()||"Spieler",mode:$("mode").value,max_opponents:Number($("limit").value)});
+ save({...d,server:server()});connect();
+ }catch(e){error(e.message);}
+};
+$("quickplay").onclick=async()=>{
+ try{if($("mode").value==="simul")throw Error("Simultanschach wird nur als private Partie erstellt.");
+ const d=await request("/api/quickplay",{name:$("name").value.trim()||"Spieler",mode:$("mode").value});
  save({...d,server:server()});connect();
  }catch(e){error(e.message);}
 };
