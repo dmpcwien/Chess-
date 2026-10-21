@@ -14,9 +14,104 @@
 #ratedState{font-size:13px;padding:5px 0;color:var(--gold);font-weight:700}
 #matchType{font-size:13px;color:var(--sub);margin-top:8px}
 
+/* Premium Gold & Black Metal board: scalable, no image loading during games. */
+:root[data-chess-theme="gold-metal"]{
+ --bg:#0b0b0e;--card:#17171a;--card2:#232021;--gold:#eebd5b;--text:#f9efd4;--sub:#c0aa87
+}
+[data-chess-theme="gold-metal"] body{
+ background:radial-gradient(ellipse at 50% -10%,#45331c 0%,#171416 35%,#090b0e 80%);
+}
+[data-chess-theme="gold-metal"] section{
+ border-color:#6f5026;
+ box-shadow:inset 0 1px 0 #ffe0a52b,0 10px 28px #0006;
+}
+[data-chess-theme="gold-metal"] .board{
+ border:4px solid #b27d35;
+ outline:2px solid #15100d;
+ border-radius:5px;
+ box-shadow:0 0 0 4px #302317,0 11px 28px #000b,inset 0 0 12px #000b;
+}
+[data-chess-theme="gold-metal"] .sq.light{
+ background:
+  linear-gradient(145deg,#fff4b164,#ffffff00 36%,#4f31031e 75%),
+  repeating-linear-gradient(96deg,#f7d77b0b 0px,#b0772a1c 2px,#ffffff0b 4px),
+  linear-gradient(140deg,#c18c3b,#f2cf7a 36%,#ac7629 80%,#f0c467);
+}
+[data-chess-theme="gold-metal"] .sq.dark{
+ background:
+  linear-gradient(132deg,#a19a9d17,#00000000 38%,#0000008a),
+  repeating-linear-gradient(135deg,#1e1e22 0px,#101216 3px,#23242b 6px),
+  linear-gradient(140deg,#2c3037,#090a0d 70%);
+}
+[data-chess-theme="gold-metal"] .sq{
+ box-shadow:inset 0 1px 0 #ffffff1a,inset 1px 0 0 #ffffff0c;
+}
+[data-chess-theme="gold-metal"] .sq.selected{
+ box-shadow:inset 0 0 0 4px #53dce2,inset 0 0 18px #3cd4fb7a;
+}
+[data-chess-theme="gold-metal"] .sq.target:after{
+ background:#18baa7ad;
+ box-shadow:0 0 10px #12baad;
+}
+[data-chess-theme="gold-metal"] .sq.target.occupied:after{
+ border-color:#09c1af; background:transparent;box-shadow:inset 0 0 0 1px #08cdb87a;
+}
+.metal-piece{
+ display:inline-block;
+ font-size:0.93em;
+ line-height:1;
+ position:relative;
+ z-index:1;
+ user-select:none;pointer-events:none;
+}
+[data-chess-theme="gold-metal"] .metal-piece{
+ font-family:"DejaVu Sans","Segoe UI Symbol","Noto Sans Symbols 2",serif;
+ font-weight:800;
+ filter:drop-shadow(0 2px 1px #000b) drop-shadow(0 1px 0 #f7d98b4a);
+}
+[data-chess-theme="gold-metal"] .metal-piece.piece-gold{
+ background:linear-gradient(122deg,#79410c 0%,#fff0aa 22%,#f4c456 40%,#7e4513 62%,#ffd87e 78%,#ad641c 100%);
+ background-clip:text;-webkit-background-clip:text;
+ color:transparent;-webkit-text-fill-color:transparent;
+ -webkit-text-stroke:1.4px #39220b;
+}
+[data-chess-theme="gold-metal"] .metal-piece.piece-obsidian{
+ background:linear-gradient(110deg,#06090e 0%,#535960 20%,#11141a 50%,#272c33 72%,#08090c 100%);
+ background-clip:text;-webkit-background-clip:text;
+ color:transparent;-webkit-text-fill-color:transparent;
+ -webkit-text-stroke:1.6px #efba5b;
+}
+[data-chess-theme="gold-metal"] .sq .coordinate{
+ color:#202123;
+ text-shadow:0 1px 0 #ffe9bb42;
+}
+[data-chess-theme="gold-metal"] .sq.dark .coordinate{
+ color:#dbbb70;
+ text-shadow:none;
+}
+[data-chess-theme="gold-metal"] .blind-white{
+ background:radial-gradient(circle at 33% 25%,#fff2b9,#c2872a 65%,#75450e);border-color:#714615;
+}
+[data-chess-theme="gold-metal"] .blind-black{
+ background:radial-gradient(circle at 33% 25%,#66666b,#1e2025 59%,#060709);border-color:#e3b458;
+}
+[data-chess-theme="gold-metal"] .pocket button{
+ background:linear-gradient(140deg,#2a292b,#121318);border-color:#bd8736;color:#eccc78;
+}
+.board-appearance{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ margin:10px 0 12px;color:var(--sub);font-size:13px;
+}
+.board-appearance label{margin:0;flex:1;font-size:13px}
+.board-appearance select{
+ width:auto;max-width:68%;min-height:38px;
+ padding:7px 9px;font-size:13px;border-color:#88622e;
+}
+
 </style></head>
 <body><main><div class="top"><b>♞ SCHACH 1001+ PRO</b><button id="backApp" class="secondary" style="font-size:12px;min-height:34px">← App</button><span class="tag">ONLINE</span></div>
 <section id="setup"><h2>Online-Partie</h2>
+<div class="board-appearance"><label for="boardTheme">Schachbrett-Design</label><select id="boardTheme"><option value="gold-metal">Gold &amp; Schwarzmetall</option><option value="classic">Klassisch</option></select></div>
 <label>Serveradresse (HTTPS)</label><input id="server" placeholder="https://dein-schach-server.example" spellcheck="false">
 <label>Dein Spielername</label><input id="name" maxlength="32" placeholder="Spieler">
 <label>Spielmodus</label><select id="mode"></select><p id="rules" class="rules"></p>
@@ -33,7 +128,7 @@
 <p class="note">Für Internet-Partien muss ein erreichbarer HTTPS-Spielserver eingerichtet sein. Die Regeln und Züge werden dort geprüft. Stockfish-Hilfe ist in Online-Partien ausgeschaltet.</p>
 </section>
 <section id="game" hidden><div class="room"><div><div class="small">Einladungscode</div><strong id="code"></strong></div><button id="copy" class="secondary">Code kopieren</button></div>
-<p class="small" id="who"></p><div class="boards" id="tabs"></div>
+<p class="small" id="who"></p><div class="board-appearance"><label for="gameBoardTheme">Brett &amp; Figuren</label><select id="gameBoardTheme"><option value="gold-metal">Gold &amp; Schwarzmetall</option><option value="classic">Klassisch</option></select></div><div class="boards" id="tabs"></div>
 <div id="board" class="board" aria-label="Schachbrett"></div><div id="state" class="status"></div>
 <div id="pocket" class="pocket"></div>
 <div id="blindControls" hidden>
@@ -49,6 +144,17 @@
 (() => {
 "use strict";
 const $=id=>document.getElementById(id);
+const themeKey="chess1001_board_theme";
+function setBoardTheme(v){
+ const theme=v==="classic"?"classic":"gold-metal";
+ document.documentElement.setAttribute("data-chess-theme",theme);
+ $("boardTheme").value=theme;$("gameBoardTheme").value=theme;
+ localStorage.setItem(themeKey,theme);
+}
+$("boardTheme").onchange=v=>setBoardTheme($("boardTheme").value);
+$("gameBoardTheme").onchange=v=>setBoardTheme($("gameBoardTheme").value);
+setBoardTheme(localStorage.getItem(themeKey)||"gold-metal");
+
 const defs=[
 ["standard","Klassisches Schach","Gewinne durch Schachmatt."],
 ["chess960","Schach960","Die Grundreihe wird zufällig aus 960 gültigen Positionen bestimmt. Die Rochade folgt den Schach960-Regeln."],
@@ -280,7 +386,13 @@ function renderBoard(b){
  const light=(files.indexOf(file)+ranks.indexOf(rank))%2===0;
  cell.className="sq "+(light?"light":"dark")+(blind? "": (sq===selected?" selected":""))+(dest.includes(sq)||drops.includes(sq)?" target":"")+(p?" occupied "+(p===p.toUpperCase()?"whitepiece":"blackpiece"):"");
  const visible=blindVisibility(p,blind);
- if(visible==="normal")cell.textContent=icons[p]||"";
+ if(visible==="normal"&&p){
+   const piece=document.createElement("span");
+   piece.className="metal-piece "+(p===p.toUpperCase()?"piece-gold":"piece-obsidian");
+   piece.textContent=icons[p]||"";
+   piece.setAttribute("aria-hidden","true");
+   cell.append(piece);
+ }
  else if(visible==="disc"){
    const d=document.createElement("span");d.className="blind-disc "+(p===p.toUpperCase()?"blind-white":"blind-black");
    d.setAttribute("aria-hidden","true");cell.append(d);
