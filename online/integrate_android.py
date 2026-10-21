@@ -58,8 +58,8 @@ INDEX.write_text(page, encoding="utf-8")
 
 # Increase versionCode above the old repository's hard-coded value 1.
 gradle = GRADLE.read_text(encoding="utf-8")
-gradle, code_changes = re.subn(r"(?m)^[ \t]*versionCode[ \t]+\d+[ \t]*$", "        versionCode 620001", gradle, count=1)
-gradle, name_changes = re.subn(r"(?m)^[ \t]*versionName[ \t]+['\"][^'\"]*['\"][ \t]*$", "        versionName '6.2.1-gold-icon'", gradle, count=1)
+gradle, code_changes = re.subn(r"(?m)^[ \t]*versionCode[ \t]+\d+[ \t]*$", "        versionCode 630000", gradle, count=1)
+gradle, name_changes = re.subn(r"(?m)^[ \t]*versionName[ \t]+['\"][^'\"]*['\"][ \t]*$", "        versionName '6.3.0-metal-board'", gradle, count=1)
 assert code_changes == 1 and name_changes == 1, "Could not update Android version metadata"
 
 # Do not commit key material. A release is signable only if 4 environment variables
@@ -90,5 +90,5 @@ if (System.getenv('CHESS_SIGNING_STORE_PATH') &&
 """
 GRADLE.write_text(gradle, encoding="utf-8")
 print("Online-Modul integriert: www/online.html und Navigation in index.html")
-print("App-Version auf 6.2.1-gold-icon / code 620001 aktualisiert.")
+print("App-Version auf 6.3.0-metal-board / code 620001 aktualisiert.")
 print("Alte Spieloberfläche, Java-Activity und lokale Daten bleiben im APK unberührt.")
