@@ -4,7 +4,6 @@ Safe to re-run. Invoked after extraction of the legacy tar archive in GitHub Act
 """
 from __future__ import annotations
 
-import html
 import re
 from pathlib import Path
 
@@ -59,8 +58,8 @@ INDEX.write_text(page, encoding="utf-8")
 
 # Increase versionCode above the old repository's hard-coded value 1.
 gradle = GRADLE.read_text(encoding="utf-8")
-gradle, code_changes = re.subn(r"(?m)^\s*versionCode\s+\d+\s*$", "        versionCode 600001", gradle, count=1)
-gradle, name_changes = re.subn(r"(?m)^\s*versionName\s+['\"][^'\"]*['\"]\s*$", "        versionName '6.0.0-online'", gradle, count=1)
+gradle, code_changes = re.subn(r"(?m)^[ \t]*versionCode[ \t]+\d+[ \t]*$", "        versionCode 600001", gradle, count=1)
+gradle, name_changes = re.subn(r"(?m)^[ \t]*versionName[ \t]+['\"][^'\"]*['\"][ \t]*$", "        versionName '6.0.0-online'", gradle, count=1)
 assert code_changes == 1 and name_changes == 1, "Could not update Android version metadata"
 
 # Do not commit key material. A release is signable only if 4 environment variables
