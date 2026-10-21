@@ -41,6 +41,11 @@ MODES = {
     "racingkings": "Racing Kings",
     "crazyhouse": "Crazyhouse",
     "simul": "Simultanschach",
+    "blind1": "Blindschach 1 · Leicht",
+    "blind2": "Blindschach 2 · Mittel",
+    "blind3": "Blindschach 3 · Schwer",
+    "blind4": "Blindschach 4 · Experte",
+    "blind5": "Blindschach 5 · Komplett blind",
 }
 BOARD_CLASSES = {
     "standard": chess.Board,
@@ -52,6 +57,11 @@ BOARD_CLASSES = {
     "racingkings": chess.variant.RacingKingsBoard,
     "crazyhouse": chess.variant.CrazyhouseBoard,
     "simul": chess.Board,
+    "blind1": chess.Board,
+    "blind2": chess.Board,
+    "blind3": chess.Board,
+    "blind4": chess.Board,
+    "blind5": chess.Board,
 }
 @asynccontextmanager
 async def lifespan(app):
@@ -163,6 +173,7 @@ def room_details(room: Room) -> dict:
         "code": room.code, "mode": room.mode, "host_name": room.host_name,
         "guests": len(room.matches), "max_opponents": room.capacity,
         "public": room.public, "rated": room.rated,
+        "blind_level": int(room.mode[-1]) if room.mode.startswith("blind") else 0,
     }
 
 
@@ -327,6 +338,7 @@ def snapshot(room: Room, token: str) -> dict:
         data.append({
             "id": board_id, "guest_name": match.guest_name,
             "rated": room.rated,
+            "blind_level": int(room.mode[-1]) if room.mode.startswith("blind") else 0,
             "rating_change": match.rating_change,
             "rating_message": match.rating_message,
             "rating": (get_store().get_rating(
