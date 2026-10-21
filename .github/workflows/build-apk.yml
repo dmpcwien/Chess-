@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -120,9 +120,46 @@ jobs:
             cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/online/Schach-1001-Pro-Online.apk
             printf 'DEBUG: Not necessarily update-compatible. Do NOT uninstall the existing app or delete its data.\n' > app/build/outputs/apk/online/Signatur-Info.txt
           fi
+      - name: Signatur, Paketkennung und APK verifizieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/online/Schach-1001-Pro-Online.apk
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 5
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "versionCode='630000'"
+          sha256sum "$APK" > app/build/outputs/apk/online/SHA256SUMS.txt
       - name: APK bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: Schach-1001-Pro-Online-APK
+          name: Schach-1001-Pro-6.3-Premium-Metal-APK
           path: app/build/outputs/apk/online/
           retention-days: 30
+      - name: Permanente GitHub-Release mit APK aktualisieren
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=v6.3.0-premium-metal
+          APK=app/build/outputs/apk/online/Schach-1001-Pro-Online.apk
+          cat > /tmp/schach-release-notes.md <<'EOF'
+          Schach 1001+ Pro v6.3.0 – Premium Gold & Black Metal.
+          Enthält das goldene Springer-App-Icon, auswählbares Gold-/Schwarzmetall-Schachbrett,
+          Online-Varianten mit 5 Blindschach-Stufen und optionales Glicko-2 Rating.
+
+          ACHTUNG: Die APK ist ohne vorhandenes Original-Release-Zertifikat als DEBUG signiert.
+          Ein direktes Update ist nur möglich, wenn die installierte App mit demselben
+          Zertifikat signiert wurde. Vorherige App NICHT deinstallieren:
+          Sonst können lokal gespeicherte Partien, Einstellungen und Daten verloren gehen.
+          EOF
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" app/build/outputs/apk/online/Signatur-Info.txt --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" app/build/outputs/apk/online/SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" app/build/outputs/apk/online/Signatur-Info.txt app/build/outputs/apk/online/SHA256SUMS.txt --target "$GITHUB_SHA" --title "Schach 1001+ Pro 6.3.0 – Premium Metal" --notes-file /tmp/schach-release-notes.md --latest --repo "$GITHUB_REPOSITORY"
+          fi
+
