@@ -26,3 +26,14 @@ def test_local_android_webview_can_authorize_profile_request():
         })
     assert response.status_code == 200
     assert "authorization" in response.headers["access-control-allow-headers"].lower()
+
+
+def test_gold_black_metal_board_is_optional_and_saved():
+    page = (Path(__file__).resolve().parents[1] / "client.html").read_text("utf-8")
+    assert 'data-chess-theme="gold-metal"' in page
+    assert 'id="boardTheme"' in page and 'id="gameBoardTheme"' in page
+    assert "chess1001_board_theme" in page
+    assert "Gold &amp; Schwarzmetall" in page
+    assert ".piece-gold" in page and ".piece-obsidian" in page
+    assert 'if(visible==="normal"&&p)' in page
+    assert "setBoardTheme(localStorage.getItem(themeKey)||\"gold-metal\");" in page
