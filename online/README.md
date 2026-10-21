@@ -86,7 +86,7 @@ Der bestehende Workflow `.github/workflows/build-apk.yml`:
 1. Holt GitHub-Dateien und entpackt das bisherige Android-WebView-Projekt.
 2. Ruft `online/integrate_android.py` auf: kopiert `online/client.html` als `app/src/main/assets/www/online.html` und fügt im bisherigen `index.html` einen Online-Einstieg ein.
 3. Hält die bisherige Paket-ID-Transformation auf `at.schach1001.pro2` bei.
-4. Setzt `versionCode 600001` und `versionName 6.0.0-online`.
+4. Setzt `versionCode 610000` und `versionName 6.1.0-glicko2`.
 5. Baut die APK und stellt sie als Actions-Artefakt `Schach-1001-Pro-Online-APK` bereit, **wenn der Build erfolgreich abgeschlossen wurde**.
 
 GitHub Actions: https://github.com/dmpcwien/Chess-/actions
