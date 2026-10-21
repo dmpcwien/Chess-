@@ -142,9 +142,13 @@ class RatingStore:
             with self.psycopg.connect(self.url) as connection:
                 yield connection
         else:
-            with sqlite3.connect(self.path, timeout=30) as connection:
+            connection = sqlite3.connect(self.path, timeout=30)
+            try:
                 connection.execute("PRAGMA busy_timeout = 30000")
-                yield connection
+                with connection:
+                    yield connection
+            finally:
+                connection.close()
 
     def execute(self, con, sql, params=()):
         if self.pg:
