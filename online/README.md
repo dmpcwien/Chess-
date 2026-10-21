@@ -1,5 +1,13 @@
 # Schach 1001+ Pro – Version 6.2: Online-Blindschach und Glicko-2
 
+## Neues Brettdesign: Premium Gold & Black Metal (v6.3.0)
+
+- Der **Online-Modus** nutzt standardmäßig goldene und schwarze Metallfelder und metallisch eingefärbte Figuren. Direkt in der Lobby und während einer Partie lässt sich der Stil zwischen **Gold & Schwarzmetall** und **Klassisch** umschalten.
+- Der **Offline-Taktiktrainer** erhält beim APK-Build denselben auswählbaren Stil. Dafür wird `branding/apply_chess_theme.py` nach dem Entpacken des bisherigen Android-Projekts ausgeführt; die ursprünglichen SVG-Figurensilhouetten, Logik, gespeicherten Taktikaufgaben und Soundfunktionen bleiben erhalten.
+- Die Darstellung arbeitet mit CSS-Verläufen und Licht-/Schatteneffekten statt großen Hintergrundbildern. Dadurch bleiben die Felder auf verschiedenen Bildschirmgrößen bedienbar; Blindschach, Schach960 und die anderen Varianten behalten ihre Zugregeln.
+- Die Designauswahl wird lokal unter `chess1001_board_theme` gespeichert und zwischen Offline- und Online-Seite derselben WebView-Installation geteilt.
+- **APK-Status:** App-Version `6.3.0-metal-board` (versionCode `630000`). Eine updatefähig signierte APK ist erst bestätigt, wenn der GitHub-Workflow erfolgreich läuft und die bisherige Android-Signatur geprüft ist.
+
 ## Aktueller Stand
 
 Die Online-Oberfläche, fünf Blindschach-Stufen, Multiplayer-Serverlogik, **Glicko-2-Ratings** und Android-Build-Integration sind auf dem `main`-Branch vorhanden. GitHub Actions baut aus dem alten eingebetteten Android-Archiv und fügt die Erweiterung im Build hinzu. **Der Multiplayer ist erst live, nachdem der Backend-Dienst auf einem erreichbaren HTTPS-Server gestartet wurde.** Der Android-Build ist derzeit nicht unabhängig als erfolgreich verifiziert.
@@ -106,7 +114,7 @@ Der bestehende Workflow `.github/workflows/build-apk.yml`:
 1. Holt GitHub-Dateien und entpackt das bisherige Android-WebView-Projekt.
 2. Ruft `online/integrate_android.py` auf: kopiert `online/client.html` als `app/src/main/assets/www/online.html` und fügt im bisherigen `index.html` einen Online-Einstieg ein.
 3. Hält die bisherige Paket-ID-Transformation auf `at.schach1001.pro2` bei.
-4. Setzt `versionCode 620000` und `versionName 6.2.0-blind-online`.
+4. Setzt `versionCode 630000` und `versionName 6.3.0-metal-board`.
 5. Baut die APK und stellt sie als Actions-Artefakt `Schach-1001-Pro-Online-APK` bereit, **wenn der Build erfolgreich abgeschlossen wurde**.
 
 GitHub Actions: https://github.com/dmpcwien/Chess-/actions
