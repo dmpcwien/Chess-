@@ -29,6 +29,25 @@ jobs:
         run: python -m pip install 'Pillow>=10.4,<12'
       - name: Goldenes Springer-App-Icon installieren
         run: python branding/apply_android_icon.py
+      - name: Neues App-Icon pruefen
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          base = Path("app/src/main")
+          sizes = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
+          manifest = (base / "AndroidManifest.xml").read_text("utf-8")
+          assert 'android:icon="@mipmap/ic_launcher"' in manifest
+          assert 'android:roundIcon="@mipmap/ic_launcher_round"' in manifest
+          for density, size in sizes.items():
+              for icon in ("ic_launcher", "ic_launcher_round"):
+                  path = base / "res" / f"mipmap-{density}" / f"{icon}.png"
+                  with Image.open(path) as image:
+                      assert image.size == (size, size)
+                      assert image.format == "PNG"
+          print("APP ICON: valid in all 5 Android densities")
+          PY
       - name: Neue Paket-ID setzen
         shell: bash
         run: |
