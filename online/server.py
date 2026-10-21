@@ -13,12 +13,14 @@ import os
 import secrets
 import string
 import time
+from pathlib import Path
 from dataclasses import dataclass, field
 
 import chess
 import chess.variant
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 MODES = {
@@ -97,6 +99,12 @@ class Room:
 rooms: dict[str, Room] = {}
 
 
+@app.get("/")
+def online_client():
+    """Serve the same mobile UI on the public chess server for browser guests."""
+    return FileResponse(Path(__file__).with_name("client.html"), media_type="text/html")
+
+
 def new_board(mode: str) -> chess.Board:
     if mode == "chess960":
         return chess.Board.from_chess960_pos(secrets.randbelow(960))
@@ -131,6 +139,13 @@ def modes():
 def create_room(req: RoomRequest):
     if req.mode not in MODES:
         raise HTTPException(422, "Unbekannter Spielmodus.")
+    # Expire inactive in-memory rooms instead of letting abandoned games grow forever.
+    now = time.monotonic()
+    for old_code, old_room in list(rooms.items()):
+        if not old_room.connections and now - old_room.last_active > 24 * 3600:
+            del rooms[old_code]
+    if len(rooms) >= 1000:
+        raise HTTPException(503, "Zu viele offene Partien. Bitte später erneut versuchen.")
     alphabet = string.ascii_uppercase + string.digits
     code = "".join(secrets.choice(alphabet) for _ in range(8))
     while code in rooms:
