@@ -56,7 +56,7 @@ app = FastAPI(title="Schach 1001+ Pro Online", version="0.1.0")
 origins = [s.strip() for s in os.getenv("ONLINE_ALLOW_ORIGINS", "*").split(",")]
 app.add_middleware(
     CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"], allow_credentials=False,
+    allow_headers=["Content-Type", "Authorization"], allow_credentials=False,
 )
 
 
