@@ -1,0 +1,14 @@
+# Render Blueprint for Schach 1001+ Pro online multiplayer server.
+# Dashboard: New > Blueprint > connect the dmpcwien/Chess- repository.
+services:
+  - type: web
+    name: schach-1001-online
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./online/Dockerfile
+    dockerContext: ./online
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
