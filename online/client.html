@@ -217,7 +217,7 @@ $("blindSubmit").onclick=()=>{
  const b=current();if(!b||b.result)return;
  const uci=$("blindUci").value.trim().toLowerCase();
  if(!/^[a-h][1-8][a-h][1-8][qrbnk]?$/.test(uci))return error("Bitte einen Zug wie e2e4 eingeben.");
- if(!b.moves.includes(uci))return error("Dieser Zug ist in der aktuellen Stellung nicht legal.");
+ if(b.blind_level!==5 && !b.moves.includes(uci))return error("Dieser Zug ist in der aktuellen Stellung nicht legal.");
  move(uci);$("blindUci").value="";info("Zug gesendet.");
 };
 $("blindUci").onkeydown=e=>{if(e.key==="Enter")$("blindSubmit").click();};
@@ -230,7 +230,8 @@ function parse(fen){
 }
 function move(uci){
  if(socket?.readyState!==1){error("Keine Serververbindung.");return;}
- const b=current();if(!b||b.result||!b.moves.includes(uci))return;
+ const b=current();if(!b||b.result||(!b.can_move && !b.moves.length))return;
+ if(b.blind_level!==5 && !b.moves.includes(uci))return;
  socket.send(JSON.stringify({type:"move",board_id:b.id,uci}));selected=null;drop=null;promo=null;
 }
 function choose(candidates){
@@ -241,7 +242,16 @@ function choose(candidates){
  $("promotion").hidden=false;
 }
 function clickSquare(sq,position,b){
- if(!b||b.result||!b.moves.length)return;
+ if(!b||b.result||(!b.can_move && !b.moves.length))return;
+ if(b.blind_level===5){
+   if(selected && selected!==sq){
+     const uci=selected+sq;
+     selected=null;move(uci);return;
+   }
+   selected=selected===sq?null:sq;
+   info(selected?"Startfeld "+sq+" gewählt. Jetzt Zielfeld berühren.":"Startfeld abgewählt.");
+   return;
+ }
  if(drop){const d=b.moves.filter(m=>m.toUpperCase().startsWith(drop+"@")&&m.slice(-2)===sq);if(d.length){choose(d);return;}drop=null;}
  if(selected){const candidates=b.moves.filter(m=>m.length>=4&&m[0]!=="@"&&m.slice(0,2)===selected&&m.slice(2,4)===sq);if(candidates.length){choose(candidates);return;}}
  const p=position[sq];
@@ -309,7 +319,7 @@ function render(){
      +" · RD "+(rating?.rd??"?")+" · σ "+(rating?.sigma??"?")
      +" · Gegner "+(other?.rating??"?")+points+note;
  }else m.hidden=true;
- $("state").textContent=b.result?"Ergebnis: "+b.result:b.moves.length?"Du bist am Zug"+(b.check?" · Schach!":""):"Gegner ist am Zug"+(b.check?" · Schach!":"");
+ $("state").textContent=b.result?"Ergebnis: "+b.result:(b.can_move||b.moves.length)?"Du bist am Zug"+(b.check?" · Schach!":""):"Gegner ist am Zug"+(b.check?" · Schach!":"");
  $("detail").textContent="Züge: "+b.history.length+" · "+(b.chess960?"Schach960-Rochade aktiv":"Server prüft alle Züge")+(state.room.mode==="simul"?" · Bretter: "+state.boards.length:"");
  $("resign").disabled=!!b.result;
 }
