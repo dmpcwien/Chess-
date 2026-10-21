@@ -48,6 +48,8 @@ jobs:
                       assert image.format == "PNG"
           print("APP ICON: valid in all 5 Android densities")
           PY
+      - name: Offline Schachbrett Gold und Schwarzmetall aktivieren
+        run: python3 branding/apply_chess_theme.py
       - name: Neue Paket-ID setzen
         shell: bash
         run: |
