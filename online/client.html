@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Schach 1001+ Pro · Online</title>
+<style>
+:root{color-scheme:dark;--bg:#101318;--card:#1b2028;--card2:#252c35;--gold:#e5aa4b;--text:#f5f4ef;--sub:#aab1bc}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,sans-serif}main{margin:auto;max-width:570px;padding:18px 14px 45px}.top{display:flex;align-items:center;justify-content:space-between;margin:2px 0 16px}.top b{font-size:21px}.tag{color:var(--gold);border:1px solid #65502f;border-radius:15px;padding:5px 10px;font-size:12px}section{background:var(--card);padding:16px;border:1px solid #343b46;border-radius:18px;margin-bottom:14px}h1,h2,p{margin-top:0}h2{font-size:17px;margin-bottom:13px}p{color:var(--sub);line-height:1.5}label{display:block;color:var(--sub);font-size:12px;margin:12px 0 6px}input,select{display:block;width:100%;min-height:44px;border:1px solid #48525e;background:#10151b;color:#fff;border-radius:10px;padding:9px;font-size:15px}button{font:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:default}.primary,.secondary,.danger{border:0;border-radius:11px;min-height:43px;padding:9px 13px;font-weight:700}.primary{background:var(--gold);color:#17130c}.secondary{background:#36414c;color:#fff}.danger{background:#5b2526;color:#fff}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.actions>*{flex:1}#message{color:#f0b66f;min-height:21px}#game[hidden],#setup[hidden],#promotion[hidden]{display:none}.room{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.room strong{font-size:21px;letter-spacing:2px;color:var(--gold)}.boards{display:flex;gap:6px;overflow-x:auto;padding:3px 0 12px}.boards button{background:#303843;color:#fff;border:1px solid #4b5764;border-radius:8px;white-space:nowrap;padding:8px}.boards .active{background:#6d4c20;border-color:var(--gold)}.board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));border:3px solid #3b424c;border-radius:5px;overflow:hidden;aspect-ratio:1;margin:0 auto;touch-action:manipulation}.sq{border:0;border-radius:0;margin:0;padding:0;font-size:clamp(21px,8.2vw,47px);line-height:1;display:grid;place-items:center;position:relative;min-width:0;color:#171717;text-shadow:0 1px 1px #b6b6b6}.sq.light{background:#e8d9bf}.sq.dark{background:#9b825f}.sq.selected{box-shadow:inset 0 0 0 5px #f0c12d}.sq.target:after{content:"";height:22%;width:22%;border-radius:50%;background:#179a57a8;position:absolute;pointer-events:none}.sq.target.occupied:after{width:90%;height:90%;border:5px solid #259956;background:transparent}.sq.whitepiece{color:#fffbed;-webkit-text-stroke:1px #2b2b2b;text-shadow:1px 2px 2px #333}.sq.blackpiece{color:#12161d;-webkit-text-stroke:.3px #ece3d4;text-shadow:0 1px 1px #f9ece1}.status{font-weight:700;margin:10px 0;color:var(--gold)}.small{font-size:13px}.pocket{display:flex;gap:7px;margin:11px 0;min-height:37px;flex-wrap:wrap}.pocket button{min-width:38px;border-radius:8px;border:1px solid #535b63;background:#303944;color:#f3e2bf;font-size:25px}.pocket .selected{outline:3px solid #f1bf54}.rules{font-size:13px;margin-top:9px}.error{color:#ffacac!important}.note{font-size:12px}#promotion{position:fixed;z-index:10;inset:0;background:#000b;display:grid;place-items:center}#promotion .popup{background:#26303a;padding:25px;border-radius:15px}.popup .actions button{font-size:30px}
+</style></head>
+<body><main><div class="top"><b>♞ SCHACH 1001+ PRO</b><span class="tag">ONLINE</span></div>
+<section id="setup"><h2>Online-Partie</h2>
+<label>Serveradresse (HTTPS)</label><input id="server" placeholder="https://dein-schach-server.example" spellcheck="false">
+<label>Dein Spielername</label><input id="name" maxlength="32" placeholder="Spieler">
+<label>Spielmodus</label><select id="mode"></select><p id="rules" class="rules"></p>
+<div id="limitRow"><label>Gegner beim Simultanschach</label><select id="limit"><option>2</option><option selected>5</option><option>10</option><option>20</option></select></div>
+<div class="actions"><button id="create" class="primary">Partie erstellen</button></div>
+<label>Einladungscode eines Freundes</label><input id="joinCode" maxlength="8" placeholder="z. B. A7BC9D2Q" autocapitalize="characters">
+<div class="actions"><button id="join" class="secondary">Partie beitreten</button></div>
+<p class="note">Für Internet-Partien muss ein erreichbarer HTTPS-Spielserver eingerichtet sein. Die Regeln und Züge werden dort geprüft. Stockfish-Hilfe ist in Online-Partien ausgeschaltet.</p>
+</section>
+<section id="game" hidden><div class="room"><div><div class="small">Einladungscode</div><strong id="code"></strong></div><button id="copy" class="secondary">Code kopieren</button></div>
+<p class="small" id="who"></p><div class="boards" id="tabs"></div>
+<div id="board" class="board" aria-label="Schachbrett"></div><div id="state" class="status"></div>
+<div id="pocket" class="pocket"></div><p id="detail" class="small"></p><div class="actions"><button id="resign" class="danger">Aufgeben</button><button id="leave" class="secondary">Zurück</button></div>
+</section><p id="message" role="status"></p></main>
+<div id="promotion" hidden><div class="popup"><h2>Umwandlung wählen</h2><div id="promotionBtns" class="actions"></div></div></div>
+<script>
+(() => {
+"use strict";
+const $=id=>document.getElementById(id);
+const defs=[
+["standard","Klassisches Schach","Gewinne durch Schachmatt."],
+["chess960","Schach960","Die Grundreihe wird zufällig aus 960 gültigen Positionen bestimmt. Die Rochade folgt den Schach960-Regeln."],
+["kingofthehill","King of the Hill","Ziehe den eigenen König auf d4, e4, d5 oder e5 und gewinne sofort; Schachmatt gilt ebenfalls."],
+["threecheck","Three-Check","Gib deinem Gegner insgesamt drei Schachgebote. Ein Doppelschach zählt als ein Schachgebot."],
+["antichess","Räuberschach","Schlagen ist Pflicht. Der König kann geschlagen werden und es gibt kein Schach. Wer alle Figuren verliert oder keinen legalen Zug mehr hat, gewinnt."],
+["atomic","Atomschach","Schlagen lässt die schlagende, geschlagene und benachbarte Nicht-Bauern explodieren. Der eigene König darf dabei nicht explodieren."],
+["horde","Horde","36 weiße Bauern kämpfen gegen die schwarze Standardarmee. Weiß gewinnt durch Matt, Schwarz durch Beseitigung sämtlicher weißer Figuren."],
+["racingkings","Racing Kings","Der König muss die achte Reihe erreichen. Schachgebote sind verboten. Erreicht Weiß sie zuerst, kann Schwarz mit einem direkten Gegenzug ausgleichen."],
+["crazyhouse","Crazyhouse","Geschlagene Steine kommen in deine Reserve und dürfen auf freie Felder eingesetzt werden. Bauern nie auf Reihe 1 oder 8."],
+["simul","Simultanschach","Ein Gastgeber spielt gleichzeitig mehrere unabhängige klassische Partien gegen verschiedene Gegner."]
+];
+const icons={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘",P:"♙",k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟"};
+for(const [k,n] of defs){const o=document.createElement("option");o.value=k;o.textContent=n;$("mode").append(o);}
+let session=null,socket=null,state=null,selected=null,drop=null,active=null,promo=null;
+const server=()=>$("server").value.trim().replace(/\/$/,"");
+const error=s=>{$("message").textContent=s;$("message").className="error";};
+function info(s){$("message").textContent=s;$("message").className="";}
+function rule(){const d=defs.find(x=>x[0]===$("mode").value);$("rules").textContent=d?.[2]||"";$("limitRow").hidden=d?.[0]!=="simul";}
+$("mode").onchange=rule;rule();
+$("server").value=localStorage.getItem("chess1001_online_server")||"";
+$("name").value=localStorage.getItem("chess1001_online_name")||"";
+async function request(path,body){
+ const url=server();if(!/^https:\/\//.test(url)&&!/^http:\/\/localhost(?::\d+)?$/.test(url))throw Error("Bitte eine HTTPS-Serveradresse eingeben.");
+ const res=await fetch(url+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+ let j={};try{j=await res.json();}catch(_){}
+ if(!res.ok)throw Error(j.detail||"Serverfehler: "+res.status);
+ return j;
+}
+function save(s){session=s;localStorage.setItem("chess1001_online_session",JSON.stringify(s));localStorage.setItem("chess1001_online_server",server());localStorage.setItem("chess1001_online_name",$("name").value.trim());}
+$("create").onclick=async()=>{
+ try{const d=await request("/api/rooms",{name:$("name").value.trim()||"Spieler",mode:$("mode").value,max_opponents:Number($("limit").value)});
+ save({...d,server:server()});connect();
+ }catch(e){error(e.message);}
+};
+$("join").onclick=async()=>{
+ try{const code=$("joinCode").value.trim().toUpperCase();if(code.length!==8)throw Error("Bitte den achtstelligen Einladungscode eingeben.");
+ const d=await request("/api/rooms/"+encodeURIComponent(code)+"/join",{name:$("name").value.trim()||"Gast"});
+ save({...d,server:server()});connect();
+ }catch(e){error(e.message);}
+};
+function connect(){
+ if(socket){socket.onclose=null;socket.close();}
+ if(!session)return;
+ $("setup").hidden=true;$("game").hidden=false;$("code").textContent=session.code;
+ $("who").textContent=(session.role==="host"?"Gastgeber":"Gast")+" · "+(defs.find(d=>d[0]===session.mode)?.[1]||session.mode);
+ info("Verbindung wird aufgebaut …");
+ const addr=session.server.replace(/^https:/,"wss:").replace(/^http:/,"ws:");
+ socket=new WebSocket(addr+"/ws/"+encodeURIComponent(session.code)+"/"+encodeURIComponent(session.token));
+ socket.onopen=()=>info("Verbunden · Warte gegebenenfalls auf den Gegner.");
+ socket.onmessage=e=>{
+  try{const data=JSON.parse(e.data);if(data.type==="state"){state=data;render();info("Online verbunden.");}else if(data.type==="error")error(data.message);}
+  catch(_){error("Antwort des Servers konnte nicht verarbeitet werden.");}
+ };
+ socket.onclose=()=>info("Verbindung unterbrochen. Tippe auf Zurück und öffne die Partie erneut.");
+ socket.onerror=()=>error("Server nicht erreichbar. HTTPS und Serveradresse prüfen.");
+}
+$("copy").onclick=()=>{if(navigator.clipboard?.writeText)navigator.clipboard.writeText(session.code).then(()=>info("Code kopiert.")).catch(()=>info("Code: "+session.code));else info("Code: "+session.code);};
+$("leave").onclick=()=>{if(socket){socket.onclose=null;socket.close();socket=null;}session=null;state=null;active=null;localStorage.removeItem("chess1001_online_session");$("game").hidden=true;$("setup").hidden=false;info("");};
+$("resign").onclick=()=>{const b=current();if(!b||b.result||!socket||socket.readyState!==1)return;if(confirm("Diese Partie wirklich aufgeben?"))socket.send(JSON.stringify({type:"resign",board_id:b.id}));};
+function current(){const b=state?.boards||[];return b.find(x=>x.id===active)||b[0]||null;}
+function parse(fen){
+ const raw=fen.split(" ")[0].split("[")[0],rows=raw.split("/"),out={};
+ rows.forEach((row,i)=>{let f=0;for(const c of row){if(/[1-8]/.test(c))f+=Number(c);else{out["abcdefgh"[f]+(8-i)]=c;f++;}}});
+ return out;
+}
+function move(uci){
+ if(socket?.readyState!==1){error("Keine Serververbindung.");return;}
+ const b=current();if(!b||b.result||!b.moves.includes(uci))return;
+ socket.send(JSON.stringify({type:"move",board_id:b.id,uci}));selected=null;drop=null;promo=null;
+}
+function choose(candidates){
+ if(candidates.length===1){move(candidates[0]);return;}
+ const div=$("promotionBtns");div.replaceChildren();
+ const labels={q:"♕",r:"♖",b:"♗",n:"♘"};
+ for(const x of candidates){const p=x.slice(-1).toLowerCase();const btn=document.createElement("button");btn.className="secondary";btn.textContent=labels[p]||p;btn.onclick=()=>{$("promotion").hidden=true;move(x);};div.append(btn);}
+ $("promotion").hidden=false;
+}
+function clickSquare(sq,position,b){
+ if(!b||b.result||!b.moves.length)return;
+ if(drop){const d=b.moves.filter(m=>m.toUpperCase().startsWith(drop+"@")&&m.slice(-2)===sq);if(d.length){choose(d);return;}drop=null;}
+ if(selected){const candidates=b.moves.filter(m=>m.length>=4&&m[0]!=="@"&&m.slice(0,2)===selected&&m.slice(2,4)===sq);if(candidates.length){choose(candidates);return;}}
+ const p=position[sq];
+ const own=p&&(state.role==="host"?p===p.toUpperCase():p===p.toLowerCase());
+ if(own&&b.moves.some(m=>m.slice(0,2)===sq)){selected=selected===sq?null:sq;drop=null;}else selected=null;
+ renderBoard(b);
+}
+function renderBoard(b){
+ const el=$("board");el.replaceChildren();
+ const pos=parse(b.fen),white=state.role==="host";
+ const ranks=white?[8,7,6,5,4,3,2,1]:[1,2,3,4,5,6,7,8],files=white?"abcdefgh":"hgfedcba";
+ const dest=b.moves.filter(m=>selected&&m.slice(0,2)===selected).map(m=>m.slice(2,4));
+ const drops=b.moves.filter(m=>drop&&m.toUpperCase().startsWith(drop+"@")).map(m=>m.slice(-2));
+ for(const rank of ranks)for(const file of files){
+ const sq=file+rank,p=pos[sq]||"",cell=document.createElement("button");
+ const light=(files.indexOf(file)+ranks.indexOf(rank))%2===0;
+ cell.className="sq "+(light?"light":"dark")+(sq===selected?" selected":"")+(dest.includes(sq)||drops.includes(sq)?" target":"")+(p?" occupied "+(p===p.toUpperCase()?"whitepiece":"blackpiece"):"");
+ cell.textContent=icons[p]||"";cell.title=sq;cell.setAttribute("aria-label",sq+" "+p);
+ cell.onclick=()=>clickSquare(sq,pos,b);el.append(cell);
+ }
+}
+function renderPocket(b){
+ const holder=$("pocket");holder.replaceChildren();const dropMoves=b.moves.filter(x=>x.includes("@"));
+ if(!dropMoves.length)return;
+ const label=document.createElement("span");label.textContent="Figur einsetzen:";label.className="small";holder.append(label);
+ const types=[...new Set(dropMoves.map(x=>x.split("@")[0].toUpperCase()||"P"))];
+ for(const p of types){const btn=document.createElement("button");btn.textContent=icons[p]||p;btn.className=drop===p?"selected":"";btn.title=p;btn.onclick=()=>{drop=drop===p?null:p;selected=null;renderBoard(b);renderPocket(b);};holder.append(btn);}
+}
+function render(){
+ if(!state)return;const tabs=$("tabs");tabs.replaceChildren();
+ if(!state.boards.length){$("board").replaceChildren();$("state").textContent="Warte auf Mitspieler …";$("pocket").replaceChildren();$("detail").textContent="Teile den Einladungscode.";return;}
+ if(!state.boards.some(x=>x.id===active))active=state.boards[0].id;
+ for(const b of state.boards){const btn=document.createElement("button");btn.className=b.id===active?"active":"";btn.textContent="♟ "+b.guest_name+(b.result?" · "+b.result:"");btn.onclick=()=>{active=b.id;selected=null;drop=null;render();};tabs.append(btn);}
+ const b=current();renderBoard(b);renderPocket(b);
+ $("state").textContent=b.result?"Ergebnis: "+b.result:b.moves.length?"Du bist am Zug"+(b.check?" · Schach!":""):"Gegner ist am Zug"+(b.check?" · Schach!":"");
+ $("detail").textContent="Züge: "+b.history.length+" · "+(b.chess960?"Schach960-Rochade aktiv":"Server prüft alle Züge")+(state.room.mode==="simul"?" · Bretter: "+state.boards.length:"");
+ $("resign").disabled=!!b.result;
+}
+const previous=localStorage.getItem("chess1001_online_session");
+if(previous){try{session=JSON.parse(previous);$("server").value=session.server;connect();}catch(_){localStorage.removeItem("chess1001_online_session");}}
+})();
+</script></body></html>
