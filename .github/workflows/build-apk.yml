@@ -21,6 +21,14 @@ jobs:
           tar -xzf /tmp/schach.tar.gz -C "$GITHUB_WORKSPACE"                                         
       - name: Online-Spielmodi und Android-Navigation integrieren
         run: python3 online/integrate_android.py
+      - name: Python fuer App-Icon vorbereiten
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bildverarbeitung fuer Android-Icon
+        run: python -m pip install 'Pillow>=10.4,<12'
+      - name: Goldenes Springer-App-Icon installieren
+        run: python branding/apply_android_icon.py
       - name: Neue Paket-ID setzen
         shell: bash
         run: |
