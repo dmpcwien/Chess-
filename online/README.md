@@ -1,11 +1,15 @@
-# Schach 1001+ Pro – Online-Erweiterung mit Glicko-2
+# Schach 1001+ Pro – Version 6.2: Online-Blindschach und Glicko-2
 
 ## Aktueller Stand
 
-Die Online-Oberfläche, Multiplayer-Serverlogik, **Glicko-2-Ratings** und Android-Build-Integration sind auf dem `main`-Branch vorhanden. GitHub Actions baut aus dem alten eingebetteten Android-Archiv und fügt die Erweiterung im Build hinzu. **Der Multiplayer ist erst live, nachdem der Backend-Dienst auf einem erreichbaren HTTPS-Server gestartet wurde.** Der Android-Build ist derzeit nicht unabhängig als erfolgreich verifiziert.
+Die Online-Oberfläche, fünf Blindschach-Stufen, Multiplayer-Serverlogik, **Glicko-2-Ratings** und Android-Build-Integration sind auf dem `main`-Branch vorhanden. GitHub Actions baut aus dem alten eingebetteten Android-Archiv und fügt die Erweiterung im Build hinzu. **Der Multiplayer ist erst live, nachdem der Backend-Dienst auf einem erreichbaren HTTPS-Server gestartet wurde.** Der Android-Build ist derzeit nicht unabhängig als erfolgreich verifiziert.
 
 Enthalten:
 
+- Fünf Online-Blindschach-Stufen: 1 = Springer/Läufer verdeckt; 2 = Springer/Läufer/Türme verdeckt; 3 = nur Bauern sichtbar; 4 = alle Figuren verdeckte Scheiben; 5 = komplett leeres Brett mit Koordinaten
+- Alle Blindschach-Modi haben standardmäßige legale Schachzüge (keine Änderung der Zugregeln), eigene Glicko-2-Rating-Pools und funktionieren über private Einladung oder Quickplay
+- Blindzüge direkt per Feldauswahl oder UCI-Notation (z. B. `e2e4`), im Blindmodus werden keine legalen Zielmarkierungen angezeigt
+- Vor jeder Partie eindeutiger Schalter Glicko-2 AN/AUS; bei privaten gewerteten Einladungen ausdrückliche Zustimmung der Gegenseite erforderlich
 - Glicko-2 auf Basis des von dir bereitgestellten Rechenverfahrens: Start 1500 Rating / RD 350 / σ 0,06 / τ 0,5
 - Gewertet oder ungewertet beim Erstellen einer Partie, inklusive zufälliger Gegnersuche und Privatpartien
 - Spieleridentität per zufälligem geheimen Profil-Token, der lokal im Browser/Android-WebView gespeichert wird; **kein geräteübergreifendes Login**
@@ -34,6 +38,22 @@ Enthalten:
 Eine neue Installation bekommt eine zufällige Spielerkennung und ein geheimes Token. Wer die Browserdaten löscht, das Gerät wechselt oder sein Token verliert, kann sein bisheriges Profil derzeit nicht selbst wiederherstellen. Das ersetzt keine vollständig abgesicherte Accountverwaltung.
 
 Die Ratingberechnung erfolgt nach jeder beendeten gewerteten Partie als eigene Glicko-2-Periode (nicht als gemeinsame Tagesauswertung). Für die RD-Inaktivität gilt eine Tagesperiode. `R`, `RD` und `σ` werden intern **nicht gerundet**, sondern nur bei der Darstellung. Bei einem Ergebnis werden beide Spieler gleichzeitig anhand ihrer ursprünglichen Ratings berechnet. Unter vier Halbzügen gibt es keine Ratingänderung.
+
+### WICHTIG: Langfristige Speicherung ohne 30-Tage-Limit
+
+Die aktuell verbundene kostenlose Render-PostgreSQL-Datenbank `schach-1001-ratings` **läuft am 20. November 2026 ab**. Für dauerhaft gespeicherte Wertungen brauchst du eine separate PostgreSQL-Datenbank ohne festes 30-Tage-Ablaufdatum. Eine technisch geeignete kostenlose Option ist **Neon Free** (https://neon.com). Bei kleinen Hobbyprojekten bleiben Daten auch erhalten, wenn Neons Compute wegen Inaktivität automatisch herunterfährt; allerdings gelten Nutzungslimits und Anbieterbedingungen. Kostenlos heißt nicht, dass ein externer Anbieter ewige Verfügbarkeit garantiert. Regelmäßige Backups bleiben notwendig.
+
+**Für die endgültige Umstellung sind folgende Schritte erforderlich:**
+
+1. Ein **eigenes** Neon-PostgreSQL-Projekt für die Schach-App anlegen (nicht die Datenbank eines anderen Projekts verwenden). Den kostenlosen Tarif wählen.
+2. Unter Render → `schach-1001-online` → Environment als **geheime Variable** `LONG_TERM_RATING_DATABASE_URL` den PostgreSQL-Connection-String von Neon hinzufügen. Die Zugangsdaten niemals in GitHub, Chatnachrichten, Screenshots oder App-HTML eintragen.
+3. Die bisherige Variable `RATING_DATABASE_URL` von Render **vorerst beibehalten**. Beim folgenden automatischen Server-Neustart kopiert `online/migrate_ratings.py` die Spielerprofile, Token-Hashes, alle Glicko-2-Ratings und die gewerteten Spiele einmalig in die neue Datenbank. Vor der Umschaltung kurzzeitig keine neuen gewerteten Partien starten, damit während der Kopie keine neuen Ergebnisse in der bisherigen Datenbank eintreffen.
+4. Prüfen, ob der Render-Deploy `Live` ist und `GET /api/health` `rating_storage_long_term: true` sowie `rating_database_expires_at: null` anzeigt. Erst dann ist die Umstellung abgeschlossen. Bestehende Profile behalten ihre Wertungen.
+5. Im Neon-Dashboard die Ratingwerte und Datensicherung kontrollieren. Render Free kann danach als Webserver weiterlaufen. Die alte Datenbank nicht vor dem erfolgreichen Vergleich und Backup löschen.
+
+**Zur Sicherheit:** Die Migration ist idempotent und bricht ab, falls die neue Datenbank schon andere Spieler-/Ratingdaten enthält. Das Ziel muss ein frisches Projekt sein. Ein gescheiterter Import überschreibt die alte Datenbank nicht. Die URLs werden nicht in Protokolle geschrieben. Die App zeigt bis zur Verbindung der Langzeitdatenbank weiterhin das bekannte Ablaufdatum an.
+
+**Hinweis zur mobilen Identität:** Das Profile-Token liegt derzeit auf deinem Gerät in `localStorage`. Beim Löschen der App-Daten geht es verloren. Die Datenbank speichert zwar dein Rating dauerhaft, aber ohne Kontowiederherstellung kannst du dann nicht mehr auf das alte Profil zugreifen. Eine spätere sichere Kontoverwaltung bzw. verschlüsselte Wiederherstellung ist noch nötig.
 
 ### Glicko-2-Beispiel / Gegenprobe
 
@@ -86,7 +106,7 @@ Der bestehende Workflow `.github/workflows/build-apk.yml`:
 1. Holt GitHub-Dateien und entpackt das bisherige Android-WebView-Projekt.
 2. Ruft `online/integrate_android.py` auf: kopiert `online/client.html` als `app/src/main/assets/www/online.html` und fügt im bisherigen `index.html` einen Online-Einstieg ein.
 3. Hält die bisherige Paket-ID-Transformation auf `at.schach1001.pro2` bei.
-4. Setzt `versionCode 610000` und `versionName 6.1.0-glicko2`.
+4. Setzt `versionCode 620000` und `versionName 6.2.0-blind-online`.
 5. Baut die APK und stellt sie als Actions-Artefakt `Schach-1001-Pro-Online-APK` bereit, **wenn der Build erfolgreich abgeschlossen wurde**.
 
 GitHub Actions: https://github.com/dmpcwien/Chess-/actions
@@ -123,7 +143,7 @@ Das Repo führt Tests bei Änderungen an `online/` automatisch in `.github/workf
 
 ## Vor einem öffentlichen Start noch notwendig
 
-- Infrastruktur für persistent gespeicherte Partien, Unterbrechungen, mehrere Serverinstanzen und Backups; für die Ratings PostgreSQL über `RATING_DATABASE_URL` verbinden
+- Dauerhafte separate PostgreSQL-Datenbank (z. B. Neon Free) über `LONG_TERM_RATING_DATABASE_URL` anschließen, Ratings kopieren und regelmäßige Backups planen; der bisherige kostenlose Render-Datenbankdienst endet nach 30 Tagen
 - Rate-Limits, Authentifizierung/Sitzungssicherheit und Monitoring
 - Schachuhren, Remisangebote, öffentliche Ranglisten, dauerhaft gesicherte Nutzerkonten und Turniere sind noch nicht implementiert; **Glicko-2-Einzelwertungen sind implementiert**
 - Signatur- und Installationstests mit der vorhandenen APK; echte Tests mit zwei Android-Geräten
