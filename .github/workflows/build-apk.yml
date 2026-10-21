@@ -50,6 +50,21 @@ jobs:
           PY
       - name: Offline Schachbrett Gold und Schwarzmetall aktivieren
         run: python3 branding/apply_chess_theme.py
+      - name: Premium Brett und Figuren pruefen
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          page=Path("app/src/main/assets/www/index.html").read_text("utf-8")
+          assert 'id="chess1001-board-theme"' in page
+          assert 'id="chess1001-metal-css"' in page
+          assert 'data-chess-theme' in page
+          assert '.pieceImg[src*="/w"]' in page
+          assert '.pieceImg[src*="/b"]' in page
+          assert 'id="board"' in page
+          assert 'id="chess1001-online-shortcut"' in page
+          print("Premium-Design: Offline- und Online-Appstart vorhanden")
+          PY
       - name: Neue Paket-ID setzen
         shell: bash
         run: |
