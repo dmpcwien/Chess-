@@ -64,6 +64,11 @@ class JoinRequest(BaseModel):
     name: str = Field(min_length=1, max_length=32)
 
 
+class QuickPlayRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=32)
+    mode: str = "standard"
+
+
 @dataclass
 class Match:
     board: chess.Board
@@ -79,6 +84,7 @@ class Room:
     host_token: str
     host_name: str
     capacity: int
+    public: bool = False
     matches: dict[str, Match] = field(default_factory=dict)
     connections: dict[str, set[WebSocket]] = field(default_factory=dict)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -97,6 +103,7 @@ class Room:
 
 
 rooms: dict[str, Room] = {}
+quickplay_lock = asyncio.Lock()
 
 
 @app.get("/")
@@ -122,6 +129,7 @@ def room_details(room: Room) -> dict:
     return {
         "code": room.code, "mode": room.mode, "host_name": room.host_name,
         "guests": len(room.matches), "max_opponents": room.capacity,
+        "public": room.public,
     }
 
 
@@ -162,6 +170,36 @@ def create_room(req: RoomRequest):
 @app.get("/api/rooms/{code}")
 def get_room(code: str):
     return room_details(room_or_404(code))
+
+
+@app.post("/api/quickplay")
+async def quickplay(req: QuickPlayRequest):
+    """Pair two anonymous players server-side, or create a short-lived waiting room."""
+    if req.mode not in MODES or req.mode == "simul":
+        raise HTTPException(422, "Für diesen Modus gibt es keine automatische Gegnersuche.")
+    async with quickplay_lock:
+        now = time.monotonic()
+        for room in list(rooms.values()):
+            if (room.public and room.mode == req.mode and not room.matches
+                    and now - room.last_active < 90):
+                async with room.lock:
+                    board_id = secrets.token_hex(6)
+                    token = secrets.token_urlsafe(32)
+                    room.matches[board_id] = Match(new_board(req.mode), token, req.name.strip())
+                    room.last_active = now
+                    return {**room_details(room), "token": token, "role": "guest",
+                            "board_id": board_id, "matched": True}
+        if len(rooms) >= 1000:
+            raise HTTPException(503, "Zu viele offene Partien.")
+        alphabet = string.ascii_uppercase + string.digits
+        code = "".join(secrets.choice(alphabet) for _ in range(8))
+        while code in rooms:
+            code = "".join(secrets.choice(alphabet) for _ in range(8))
+        token = secrets.token_urlsafe(32)
+        room = Room(code, req.mode, token, req.name.strip(), 1, public=True)
+        rooms[code] = room
+        return {**room_details(room), "token": token, "role": "host",
+                "matched": False}
 
 
 @app.post("/api/rooms/{code}/join")
