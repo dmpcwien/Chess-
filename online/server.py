@@ -181,7 +181,8 @@ async def quickplay(req: QuickPlayRequest):
         now = time.monotonic()
         for room in list(rooms.values()):
             if (room.public and room.mode == req.mode and not room.matches
-                    and now - room.last_active < 90):
+                    and now - room.last_active < 90
+                    and (room.connections.get(room.host_token) or now - room.last_active < 10)):
                 async with room.lock:
                     board_id = secrets.token_hex(6)
                     token = secrets.token_urlsafe(32)
