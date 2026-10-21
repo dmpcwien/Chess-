@@ -65,6 +65,27 @@ def test_unrated_blindfold_games_do_not_affect_ratings(tmp_path, monkeypatch):
     server.rooms.clear()
 
 
+
+
+def test_level_five_hides_server_side_board_details(tmp_path, monkeypatch):
+    store = RatingStore(path=tmp_path / "stage5.sqlite3")
+    monkeypatch.setattr(server, "get_store", lambda: store)
+    server.rooms.clear()
+    with TestClient(server.app) as client:
+        room = client.post("/api/rooms", json={
+            "name": "A", "mode": "blind5", "rated": False
+        }).json()
+        client.post(f"/api/rooms/{room['code']}/join", json={"name": "B"})
+        with client.websocket_connect(f"/ws/{room['code']}/{room['token']}") as ws:
+            state = ws.receive_json()
+            board = state["boards"][0]
+            assert board["blind_level"] == 5
+            assert board["can_move"] is True
+            assert board["moves"] == []
+            assert board["fen"].startswith("8/8/8/8/8/8/8/8")
+    server.rooms.clear()
+
+
 def test_client_has_five_blind_modes_without_piece_leaks():
     source = (Path(__file__).resolve().parents[1] / "client.html").read_text("utf-8")
     for level in range(1, 6):
@@ -75,3 +96,4 @@ def test_client_has_five_blind_modes_without_piece_leaks():
     assert 'if(level===5)return "empty";' in source
     assert "function updateRatedState" in source
     assert "Die Einladung ist GEWERTET" in source
+    assert "if(b.blind_level===5)" in source
