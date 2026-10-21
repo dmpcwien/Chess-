@@ -5,6 +5,7 @@ services:
     name: schach-1001-online
     runtime: docker
     plan: free
+    region: frankfurt
     branch: main
     dockerfilePath: ./online/Dockerfile
     dockerContext: ./online
