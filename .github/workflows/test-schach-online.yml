@@ -15,5 +15,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install -r online/requirements.txt pytest
+      - run: python -m pip install -r online/requirements.txt pytest httpx
       - run: python -m pytest -q online/tests
