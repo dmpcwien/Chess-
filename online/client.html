@@ -149,6 +149,8 @@ async function checkRatingStorage(){
      storageWarning="Achtung: Die kostenlose Rating-Datenbank läuft am "+
        expiry.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"})+
        " ab. Vorher müssen die Wertungen gesichert oder übertragen werden.";
+   } else if(health.rating_storage_long_term){
+     storageWarning="Langzeit-Ratingdatenbank verbunden. Es gilt kein festes 30-Tage-Ablaufdatum (regelmäßige Sicherung empfohlen).";
    } else {
      storageWarning="";
    }
