@@ -9,6 +9,7 @@ Deploy behind HTTPS; use a persistent shared store before scaling to >1 process.
 from __future__ import annotations
 
 import asyncio
+import io
 import os
 import secrets
 import string
@@ -19,9 +20,10 @@ from contextlib import asynccontextmanager
 
 import chess
 import chess.variant
+import segno
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 from fastapi import Header
 
@@ -259,6 +261,25 @@ def create_room(req: RoomRequest):
 @app.get("/api/rooms/{code}")
 def get_room(code: str):
     return room_details(room_or_404(code))
+
+@app.get("/api/rooms/{code}/qr.svg")
+def room_qr_svg(code: str):
+    """Create a scannable invitation to the actual public chess room.
+
+    No player tokens or private profile data are ever encoded into the QR.
+    """
+    room = room_or_404(code)
+    # Only an allowlisted, canonical HTTPS destination is encoded.
+    public_url = "https://schach-1001-online.onrender.com/?invite=" + room.code
+    qr = segno.make(public_url, error="h")
+    stream = io.BytesIO()
+    qr.save(stream, kind="svg", scale=6, border=3, xmldecl=False)
+    return Response(
+        content=stream.getvalue(),
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+    )
+
 
 
 @app.post("/api/quickplay")
