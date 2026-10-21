@@ -108,6 +108,14 @@
  padding:7px 9px;font-size:13px;border-color:#88622e;
 }
 
+.invite-panel{background:#15171b;border:1px solid #916a36;border-radius:14px;padding:14px;margin:12px 0;text-align:center}
+.invite-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px;color:var(--gold)}
+#inviteQr{display:block;width:min(196px,70%);height:auto;margin:4px auto 12px;border:8px solid #fff;border-radius:8px;background:white}
+#inviteUrl{font-size:12px;user-select:all}
+.scanner-dialog{position:fixed;inset:0;z-index:9999;background:#05070af0;display:flex;align-items:center;justify-content:center;padding:16px}
+.scanner-dialog[hidden],.invite-panel[hidden]{display:none!important}
+.scanner-inner{max-width:470px;width:100%;padding:18px;border-radius:16px;border:1px solid #b98743;background:#1b2027;text-align:center}
+#scanVideo{width:100%;max-height:65vh;aspect-ratio:3/4;object-fit:cover;background:#050607;border-radius:10px}
 </style></head>
 <body><main><div class="top"><b>♞ SCHACH 1001+ PRO</b><button id="backApp" class="secondary" style="font-size:12px;min-height:34px">← App</button><span class="tag">ONLINE</span></div>
 <section id="setup"><h2>Online-Partie</h2>
@@ -123,11 +131,19 @@
 <div id="ratingNotice" class="rated-help"></div>
 <div id="limitRow"><label>Gegner beim Simultanschach</label><select id="limit"><option>2</option><option selected>5</option><option>10</option><option>20</option></select></div>
 <div class="actions"><button id="quickplay" class="primary">⚡ Schnelles Online-Spiel</button></div><div class="actions"><button id="create" class="secondary">Private Partie erstellen</button></div>
-<label>Einladungscode eines Freundes</label><input id="joinCode" maxlength="8" placeholder="z. B. A7BC9D2Q" autocapitalize="characters">
+<label for="joinCode">Einladungscode oder Einladungslink eines Freundes</label><input id="joinCode" maxlength="256" placeholder="8-stelliger Code oder https://…/?invite=…" autocapitalize="off" spellcheck="false">
+<div class="actions"><button id="scanInvite" class="secondary" type="button">📷 QR-Code scannen</button><button id="pasteInvite" class="secondary" type="button">Link einfügen</button></div>
 <div class="actions"><button id="join" class="secondary">Partie beitreten</button></div>
 <p class="note">Für Internet-Partien muss ein erreichbarer HTTPS-Spielserver eingerichtet sein. Die Regeln und Züge werden dort geprüft. Stockfish-Hilfe ist in Online-Partien ausgeschaltet.</p>
 </section>
 <section id="game" hidden><div class="room"><div><div class="small">Einladungscode</div><strong id="code"></strong></div><button id="copy" class="secondary">Code kopieren</button></div>
+<div id="invitePanel" class="invite-panel" hidden>
+  <div class="invite-heading"><strong>Freund einladen</strong><span class="small">Mit Code, Link oder QR</span></div>
+  <img id="inviteQr" alt="QR-Code zur Schachpartie" width="196" height="196">
+  <input id="inviteUrl" readonly aria-label="Einladungslink">
+  <div class="actions"><button class="secondary" id="copyLink" type="button">🔗 Link kopieren</button><button class="primary" id="shareLink" type="button">Teilen</button></div>
+  <p class="note">Der Link enthält nur den Raumcode, keine Zugangsdaten. Der Raum muss noch verfügbar sein.</p>
+</div>
 <p class="small" id="who"></p><div class="board-appearance"><label for="gameBoardTheme">Brett &amp; Figuren</label><select id="gameBoardTheme"><option value="gold-metal">Gold &amp; Schwarzmetall</option><option value="classic">Klassisch</option></select></div><div class="boards" id="tabs"></div>
 <div id="board" class="board" aria-label="Schachbrett"></div><div id="state" class="status"></div>
 <div id="pocket" class="pocket"></div>
@@ -139,6 +155,13 @@
 </div>
 <div id="matchType"></div><div id="matchRating" class="rating-stats" hidden></div><p id="detail" class="small"></p><div class="actions"><button id="resign" class="danger">Aufgeben</button><button id="leave" class="secondary">Zurück</button></div>
 </section><p id="message" role="status"></p></main>
+<div id="qrScanner" hidden role="dialog" aria-modal="true" aria-labelledby="scannerTitle" class="scanner-dialog">
+ <div class="scanner-inner"><h2 id="scannerTitle">QR-Code scannen</h2>
+ <video id="scanVideo" autoplay muted playsinline aria-label="Kameravorschau"></video>
+ <p id="scanStatus" class="small">Halte den Einladungscode vor die Kamera.</p>
+ <div class="actions"><button type="button" id="closeScanner" class="secondary">Schließen</button></div>
+ <p class="note">Falls dein Android-Gerät den Scanner nicht unterstützt, öffne den QR-Code mit der normalen Kamera-App oder füge den Link oben ein.</p>
+ </div></div>
 <div id="promotion" hidden><div class="popup"><h2>Umwandlung wählen</h2><div id="promotionBtns" class="actions"></div></div></div>
 <script>
 (() => {
@@ -176,6 +199,35 @@ const icons={K:"♔",Q:"♕",R:"♖",B:"♗",N:"♘",P:"♙",k:"♚",q:"♛",r:"
 for(const [k,n] of defs){const o=document.createElement("option");o.value=k;o.textContent=n;$("mode").append(o);}
 let session=null,socket=null,state=null,selected=null,drop=null,active=null,promo=null;
 const server=()=>$("server").value.trim().replace(/\/$/,"");
+const INVITE_ORIGIN="https://schach-1001-online.onrender.com";
+function invitationUrl(code){return INVITE_ORIGIN+"/?invite="+encodeURIComponent(code);}
+function codeFromInvite(text){
+ const value=String(text||"").trim();
+ if(/^[A-Z0-9]{8}$/i.test(value))return value.toUpperCase();
+ try{
+   const u=new URL(value);
+   if(u.origin!==INVITE_ORIGIN || u.pathname!=="/")return null;
+   const code=u.searchParams.get("invite")||"";
+   return /^[A-Z0-9]{8}$/i.test(code)?code.toUpperCase():null;
+ }catch(_){return null;}
+}
+function prepareInvite(raw,autoJoin=false){
+ const code=codeFromInvite(raw);
+ if(!code){error("Das ist kein gültiger Schach-1001-Einladungscode oder -Link.");return false;}
+ $("joinCode").value=code;
+ $("joinCode").focus();
+ if(autoJoin && $("name").value.trim())$("join").click();
+ else info("Einladung "+code+" erkannt. Spielername eingeben und auf „Partie beitreten“ tippen.");
+ return true;
+}
+function copyText(txt){
+ if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(txt);
+ const input=document.createElement("textarea");input.value=txt;input.style.position="fixed";input.style.opacity="0";
+ document.body.append(input);input.select();
+ const ok=document.execCommand("copy");input.remove();
+ return ok?Promise.resolve():Promise.reject(Error("Bitte den Link manuell markieren und kopieren."));
+}
+
 const error=s=>{$("message").textContent=s;$("message").className="error";};
 function info(s){$("message").textContent=s;$("message").className="";}
 function rule(){
@@ -282,7 +334,7 @@ $("quickplay").onclick=async()=>{
  }catch(e){error(e.message);}
 };
 $("join").onclick=async()=>{
- try{const code=$("joinCode").value.trim().toUpperCase();if(code.length!==8)throw Error("Bitte den achtstelligen Einladungscode eingeben.");
+ try{const code=codeFromInvite($("joinCode").value);if(!code)throw Error("Bitte einen gültigen 8-stelligen Code oder Schach-1001-Link eingeben.");
  const details=await getJSON("/api/rooms/"+encodeURIComponent(code));
  // The host's setting is authoritative. The guest must explicitly agree
  // to a rated invitation before an account and a match are created.
@@ -301,6 +353,13 @@ function connect(){
  if(socket){socket.onclose=null;socket.close();}
  if(!session)return;
  $("setup").hidden=true;$("game").hidden=false;$("code").textContent=session.code;
+ const hostInvite=session.role==="host" && !session.public;
+ $("invitePanel").hidden=!hostInvite;
+ if(hostInvite){
+   $("inviteUrl").value=invitationUrl(session.code);
+   $("inviteQr").src=server()+"/api/rooms/"+encodeURIComponent(session.code)+"/qr.svg";
+ }
+
  $("who").textContent=(session.role==="host"?"Gastgeber":"Gast")+" · "+(defs.find(d=>d[0]===session.mode)?.[1]||session.mode)+(session.rated?" · Gewertet":" · Ungewertet");
  info("Verbindung wird aufgebaut …");
  const addr=session.server.replace(/^https:/,"wss:").replace(/^http:/,"ws:");
@@ -317,7 +376,59 @@ function connect(){
  socket.onclose=()=>info("Verbindung unterbrochen. Tippe auf Zurück und öffne die Partie erneut.");
  socket.onerror=()=>error("Server nicht erreichbar. HTTPS und Serveradresse prüfen.");
 }
-$("copy").onclick=()=>{if(navigator.clipboard?.writeText)navigator.clipboard.writeText(session.code).then(()=>info("Code kopiert.")).catch(()=>info("Code: "+session.code));else info("Code: "+session.code);};
+$("copy").onclick=()=>copyText(session.code).then(()=>info("Code kopiert.")).catch(()=>info("Code: "+session.code));
+$("copyLink").onclick=()=>copyText(invitationUrl(session.code)).then(()=>info("Einladungslink kopiert.")).catch(e=>error(e.message));
+$("shareLink").onclick=async()=>{
+ const url=invitationUrl(session.code);
+ if(navigator.share){try{await navigator.share({title:"Schach 1001+ Pro – Einladung",text:"Spiel mit mir online Schach!",url});return;}catch(e){if(e.name==="AbortError")return;}}
+ try{await copyText(url);info("Link kopiert – jetzt in WhatsApp, Signal oder einer Nachricht einfügen.");}
+ catch(e){error("Link zum manuellen Teilen: "+url);}
+};
+$("pasteInvite").onclick=async()=>{
+ if(!navigator.clipboard?.readText)return error("Einfügen nicht verfügbar. Link ins Eingabefeld einfügen.");
+ try{prepareInvite(await navigator.clipboard.readText());}catch(_){error("Zwischenablage nicht verfügbar. Bitte Link manuell einfügen.");}
+};
+$("joinCode").addEventListener("keydown",e=>{if(e.key==="Enter")$("join").click();});
+let scanStream=null,scanTimer=null,scanning=false;
+function stopScanner(){
+ scanning=false;if(scanTimer){clearTimeout(scanTimer);scanTimer=null;}
+ const video=$("scanVideo");video.pause();video.srcObject=null;
+ if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
+ $("qrScanner").hidden=true;
+}
+$("closeScanner").onclick=stopScanner;
+$("scanInvite").onclick=async()=>{
+ if(!("BarcodeDetector" in window)||!navigator.mediaDevices?.getUserMedia){
+   error("Scanner in dieser WebView nicht verfügbar. Scanne den QR-Code mit der Android-Kamera oder füge den Link ein.");
+   return;
+ }
+ $("qrScanner").hidden=false;$("scanStatus").textContent="Kamera wird geöffnet …";
+ try{
+   const detector=new BarcodeDetector({formats:["qr_code"]});
+   scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+   const video=$("scanVideo");video.srcObject=scanStream;await video.play();
+   scanning=true;
+   async function tick(){
+     if(!scanning)return;
+     try{
+       const found=await detector.detect(video);
+       for(const item of found){
+         const code=codeFromInvite(item.rawValue);
+         if(code){stopScanner();prepareInvite(code,true);return;}
+       }
+       $("scanStatus").textContent="QR-Code im Kamerabild suchen …";
+     }catch(_){$("scanStatus").textContent="Kamera konnte den Code nicht lesen.";}
+     if(scanning)scanTimer=setTimeout(tick,300);
+   }
+   tick();
+ }catch(e){stopScanner();error("Kamera nicht verfügbar oder Berechtigung verweigert. Bitte normale Kamera-App oder Link-Eingabe verwenden.");}
+};
+function loadInvitationFromLink(){
+ const value=new URLSearchParams(location.search).get("invite");
+ if(value)prepareInvite(value,false);
+ if(new URLSearchParams(location.search).get("scan")==="1")$("scanInvite").click();
+}
+
 $("leave").onclick=()=>{if(socket){socket.onclose=null;socket.close();socket=null;}session=null;state=null;active=null;localStorage.removeItem("chess1001_online_session");$("game").hidden=true;$("setup").hidden=false;showRating();info("");};
 $("blindSubmit").onclick=()=>{
  const b=current();if(!b||b.result)return;
@@ -438,6 +549,7 @@ function render(){
 const previous=localStorage.getItem("chess1001_online_session");
 if(previous){try{session=JSON.parse(previous);$("server").value=session.server;connect();}catch(_){localStorage.removeItem("chess1001_online_session");}}
 rule();
+loadInvitationFromLink();
 checkRatingStorage();
 })();
 </script></body></html>
