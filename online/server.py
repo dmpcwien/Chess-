@@ -27,8 +27,10 @@ from fastapi import Header
 
 try:
     from .ratings import get_store
+    from .migrate_ratings import migrate_on_startup
 except ImportError:  # uvicorn server:app when cwd is online/
     from ratings import get_store
+    from migrate_ratings import migrate_on_startup
 
 MODES = {
     "standard": "Klassisches Schach",
@@ -67,6 +69,7 @@ BOARD_CLASSES = {
 async def lifespan(app):
     # A successful service startup also verifies database access and creates
     # the ratings tables (so a misconfigured Render DB cannot show as Live).
+    migrate_on_startup()
     get_store()
     yield
 
@@ -181,9 +184,10 @@ def room_details(room: Room) -> dict:
 def health():
     return {
         "ok": True, "active_rooms": len(rooms),
-        "rating_storage": "postgresql" if os.getenv("RATING_DATABASE_URL") else "sqlite",
-        "rating_storage_durable": bool(os.getenv("RATING_DATABASE_URL")),
-        "rating_database_expires_at": os.getenv("RATING_DATABASE_EXPIRES_AT"),
+        "rating_storage": "postgresql" if (os.getenv("LONG_TERM_RATING_DATABASE_URL") or os.getenv("RATING_DATABASE_URL")) else "sqlite",
+        "rating_storage_durable": bool(os.getenv("LONG_TERM_RATING_DATABASE_URL") or os.getenv("RATING_DATABASE_URL")),
+        "rating_storage_long_term": bool(os.getenv("LONG_TERM_RATING_DATABASE_URL")),
+        "rating_database_expires_at": None if os.getenv("LONG_TERM_RATING_DATABASE_URL") else os.getenv("RATING_DATABASE_EXPIRES_AT"),
     }
 
 
