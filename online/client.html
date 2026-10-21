@@ -107,7 +107,7 @@ function move(uci){
 function choose(candidates){
  if(candidates.length===1){move(candidates[0]);return;}
  const div=$("promotionBtns");div.replaceChildren();
- const labels={q:"♕",r:"♖",b:"♗",n:"♘"};
+ const labels={q:"♕",r:"♖",b:"♗",n:"♘",k:"♔"};
  for(const x of candidates){const p=x.slice(-1).toLowerCase();const btn=document.createElement("button");btn.className="secondary";btn.textContent=labels[p]||p;btn.onclick=()=>{$("promotion").hidden=true;move(x);};div.append(btn);}
  $("promotion").hidden=false;
 }
@@ -139,7 +139,7 @@ function renderPocket(b){
  if(!dropMoves.length)return;
  const label=document.createElement("span");label.textContent="Figur einsetzen:";label.className="small";holder.append(label);
  const types=[...new Set(dropMoves.map(x=>x.split("@")[0].toUpperCase()||"P"))];
- for(const p of types){const btn=document.createElement("button");btn.textContent=icons[p]||p;btn.className=drop===p?"selected":"";btn.title=p;btn.onclick=()=>{drop=drop===p?null:p;selected=null;renderBoard(b);renderPocket(b);};holder.append(btn);}
+ for(const p of types){const btn=document.createElement("button");btn.textContent=icons[state.role==="guest"?p.toLowerCase():p]||p;btn.className=drop===p?"selected":"";btn.title=p;btn.onclick=()=>{drop=drop===p?null:p;selected=null;renderBoard(b);renderPocket(b);};holder.append(btn);}
 }
 function render(){
  if(!state)return;const tabs=$("tabs");tabs.replaceChildren();
