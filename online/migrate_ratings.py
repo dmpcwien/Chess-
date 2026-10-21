@@ -37,7 +37,7 @@ def migrate_to_long_term(source_url: str, dest_url: str) -> dict:
     # because it has been used for rated games.
     RatingStore(database_url=dest_url)
 
-    with psycopg.connect(source_url) as source, psycopg.connect(dest_url) as dest:
+    with psycopg.connect(dest_url) as dest:
         with dest.transaction():
             dest.execute("""CREATE TABLE IF NOT EXISTS rating_migrations (
                 migration_tag TEXT PRIMARY KEY, migrated_at BIGINT NOT NULL,
@@ -48,44 +48,47 @@ def migrate_to_long_term(source_url: str, dest_url: str) -> dict:
                         (MIGRATION_TAG,)).fetchone():
             return {"status": "already_migrated"}
 
-        counts = {}
-        with source.transaction():
-            # Use one consistent snapshot to avoid mismatched games/ratings.
-            source.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-            records = {}
-            for table, columns in TABLES.items():
-                names = ", ".join(columns)
-                records[table] = source.execute(
-                    f"SELECT {names} FROM {table}"
-                ).fetchall()
-                counts[table] = len(records[table])
+        # Read source only if the target has not been migrated yet.
+        # This allows the old free DB to expire without breaking later restarts.
+        with psycopg.connect(source_url) as source:
+            counts = {}
+            with source.transaction():
+                # Use one consistent snapshot to avoid mismatched games/ratings.
+                source.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+                records = {}
+                for table, columns in TABLES.items():
+                    names = ", ".join(columns)
+                    records[table] = source.execute(
+                        f"SELECT {names} FROM {table}"
+                    ).fetchall()
+                    counts[table] = len(records[table])
 
-            # The entire insertion is atomic; partial data will be rolled
-            # back on a single error, keeping the old database untouched.
-            with dest.transaction():
-                if dest.execute("SELECT 1 FROM rating_migrations WHERE migration_tag = %s",
-                                (MIGRATION_TAG,)).fetchone():
-                    return {"status": "already_migrated"}
-                for table in TABLES:
-                    if dest.execute(f"SELECT EXISTS (SELECT 1 FROM {table})").fetchone()[0]:
-                        raise RuntimeError(
-                            "Target contains Glicko-2 data already. Migration aborted "
-                            "to protect existing profiles and ratings."
-                        )
-                for table, cols in TABLES.items():
-                    names = ", ".join(cols)
-                    placeholders = ", ".join(["%s"] * len(cols))
-                    statement = f"INSERT INTO {table} ({names}) VALUES ({placeholders})"
-                    with dest.cursor() as cur:
-                        for row in records[table]:
-                            cur.execute(statement, row)
-                dest.execute(
-                    """INSERT INTO rating_migrations
-                    (migration_tag,migrated_at,player_count,rating_count,game_count)
-                    VALUES (%s,%s,%s,%s,%s)""",
-                    (MIGRATION_TAG, int(time.time()),
-                     counts["players"], counts["ratings"], counts["rated_games"]),
-                )
+                # The entire insertion is atomic; partial data will be rolled
+                # back on a single error, keeping the old database untouched.
+                with dest.transaction():
+                    if dest.execute("SELECT 1 FROM rating_migrations WHERE migration_tag = %s",
+                                    (MIGRATION_TAG,)).fetchone():
+                        return {"status": "already_migrated"}
+                    for table in TABLES:
+                        if dest.execute(f"SELECT EXISTS (SELECT 1 FROM {table})").fetchone()[0]:
+                            raise RuntimeError(
+                                "Target contains Glicko-2 data already. Migration aborted "
+                                "to protect existing profiles and ratings."
+                            )
+                    for table, cols in TABLES.items():
+                        names = ", ".join(cols)
+                        placeholders = ", ".join(["%s"] * len(cols))
+                        statement = f"INSERT INTO {table} ({names}) VALUES ({placeholders})"
+                        with dest.cursor() as cur:
+                            for row in records[table]:
+                                cur.execute(statement, row)
+                    dest.execute(
+                        """INSERT INTO rating_migrations
+                        (migration_tag,migrated_at,player_count,rating_count,game_count)
+                        VALUES (%s,%s,%s,%s,%s)""",
+                        (MIGRATION_TAG, int(time.time()),
+                         counts["players"], counts["ratings"], counts["rated_games"]),
+                    )
         return {"status": "migrated", "counts": counts}
 
 
