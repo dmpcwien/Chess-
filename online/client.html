@@ -113,9 +113,16 @@ async function checkRatingStorage(){
  try{
    const health=await getJSON("/api/health");
    if(health.rating_storage_durable===false){
-     storageWarning="Hinweis: Server hat noch keine dauerhafte Rating-Datenbank. Wertungen können bei einem Neustart verloren gehen.";
-     $("ratingNotice").textContent=storageWarning;
-   } else {storageWarning="";showRating();}
+     storageWarning="Hinweis: Der Server hat keine externe Datenbank. Wertungen können bei einem Neustart verloren gehen.";
+   } else if(health.rating_database_expires_at){
+     const expiry=new Date(health.rating_database_expires_at);
+     storageWarning="Achtung: Die kostenlose Rating-Datenbank läuft am "+
+       expiry.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"})+
+       " ab. Vorher müssen die Wertungen gesichert oder übertragen werden.";
+   } else {
+     storageWarning="";
+   }
+   showRating();
  }catch(_){}
 }
 
