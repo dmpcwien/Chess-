@@ -339,6 +339,7 @@ def snapshot(room: Room, token: str) -> dict:
         can_move = (result is None and
                     ((host and board.turn == chess.WHITE) or
                      (not host and board.turn == chess.BLACK)))
+        blind5 = room.mode == "blind5"
         data.append({
             "id": board_id, "guest_name": match.guest_name,
             "rated": room.rated,
@@ -351,9 +352,14 @@ def snapshot(room: Room, token: str) -> dict:
             "opponent_rating": (get_store().get_rating(
                 match.guest_player_id if host else room.host_player_id, room.mode
             ) if room.rated else None),
-            "fen": board.fen(), "chess960": board.chess960,
+            "fen": ("8/8/8/8/8/8/8/8 w - - 0 1" if blind5 else board.fen()),
+            "chess960": board.chess960,
             "turn": "white" if board.turn else "black",
-            "moves": [board.uci(move) for move in board.legal_moves] if can_move else [],
+            "can_move": can_move,
+            # Complete blindfold stage must not send piece positions or
+            # enumerate legal moves. The server still validates every UCI move.
+            "moves": ([] if blind5 else
+                      [board.uci(move) for move in board.legal_moves] if can_move else []),
             "history": [board.uci(move) for move in board.move_stack],
             "result": result,
             "check": board.is_check(),
