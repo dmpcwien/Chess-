@@ -15,6 +15,7 @@ import string
 import time
 from pathlib import Path
 from dataclasses import dataclass, field
+from contextlib import asynccontextmanager
 
 import chess
 import chess.variant
@@ -52,7 +53,18 @@ BOARD_CLASSES = {
     "crazyhouse": chess.variant.CrazyhouseBoard,
     "simul": chess.Board,
 }
-app = FastAPI(title="Schach 1001+ Pro Online", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app):
+    # A successful service startup also verifies database access and creates
+    # the ratings tables (so a misconfigured Render DB cannot show as Live).
+    get_store()
+    yield
+
+
+app = FastAPI(
+    title="Schach 1001+ Pro Online", version="0.2.0",
+    lifespan=lifespan,
+)
 origins = [s.strip() for s in os.getenv("ONLINE_ALLOW_ORIGINS", "*").split(",")]
 app.add_middleware(
     CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST"],
