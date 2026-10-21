@@ -172,6 +172,7 @@ def health():
         "ok": True, "active_rooms": len(rooms),
         "rating_storage": "postgresql" if os.getenv("RATING_DATABASE_URL") else "sqlite",
         "rating_storage_durable": bool(os.getenv("RATING_DATABASE_URL")),
+        "rating_database_expires_at": os.getenv("RATING_DATABASE_EXPIRES_AT"),
     }
 
 
