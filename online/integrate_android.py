@@ -58,8 +58,8 @@ INDEX.write_text(page, encoding="utf-8")
 
 # Increase versionCode above the old repository's hard-coded value 1.
 gradle = GRADLE.read_text(encoding="utf-8")
-gradle, code_changes = re.subn(r"(?m)^[ \t]*versionCode[ \t]+\d+[ \t]*$", "        versionCode 600001", gradle, count=1)
-gradle, name_changes = re.subn(r"(?m)^[ \t]*versionName[ \t]+['\"][^'\"]*['\"][ \t]*$", "        versionName '6.0.0-online'", gradle, count=1)
+gradle, code_changes = re.subn(r"(?m)^[ \t]*versionCode[ \t]+\d+[ \t]*$", "        versionCode 610000", gradle, count=1)
+gradle, name_changes = re.subn(r"(?m)^[ \t]*versionName[ \t]+['\"][^'\"]*['\"][ \t]*$", "        versionName '6.1.0-glicko2'", gradle, count=1)
 assert code_changes == 1 and name_changes == 1, "Could not update Android version metadata"
 
 # Do not commit key material. A release is signable only if 4 environment variables
