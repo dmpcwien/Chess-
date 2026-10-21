@@ -96,23 +96,27 @@ async function ensureProfile(){
  return p;
 }
 let ratingRefresh=0;
+let storageWarning="";
 async function showRating(){
  const mode=$("mode").value, div=$("ratingStats"), n=$("ratingNotice");
- if(mode==="simul"){div.textContent="Simultanschach bleibt ungewertet.";n.textContent="";return;}
+ if(mode==="simul"){div.textContent="Simultanschach bleibt ungewertet.";n.textContent=storageWarning;return;}
  const p=storedProfile();
- if(!p){div.textContent=$("rated").checked?"Dein Spielerprofil wird bei der ersten gewerteten Partie automatisch erstellt.":"Noch keine Glicko-2-Wertung angelegt.";n.textContent="";return;}
+ if(!p){div.textContent=$("rated").checked?"Dein Spielerprofil wird bei der ersten gewerteten Partie automatisch erstellt.":"Noch keine Glicko-2-Wertung angelegt.";n.textContent=storageWarning;return;}
  const id=++ratingRefresh;
  try {
    const result=await getJSON("/api/ratings/"+encodeURIComponent(p.id)+"/"+encodeURIComponent(mode));
    if(id!==ratingRefresh)return;
    div.textContent="♟ "+result.name+" · "+result.rating+(result.provisional?"?":"")+" Glicko-2 · RD "+result.rd+" · σ "+result.sigma+" · "+result.games+" Partien";
-   n.textContent=result.provisional?"Vorläufiges Rating (weniger als 10 gewertete Partien).":"";
+   n.textContent=(result.provisional?"Vorläufiges Rating (weniger als 10 gewertete Partien). ":"")+storageWarning;
  }catch(e){if(id===ratingRefresh)div.textContent="Wertung momentan nicht abrufbar: "+e.message;}
 }
 async function checkRatingStorage(){
  try{
    const health=await getJSON("/api/health");
-   if(health.rating_storage_durable===false)$("ratingNotice").textContent="Hinweis: Server hat noch keine dauerhafte Rating-Datenbank. Wertungen können bei einem Neustart verloren gehen.";
+   if(health.rating_storage_durable===false){
+     storageWarning="Hinweis: Server hat noch keine dauerhafte Rating-Datenbank. Wertungen können bei einem Neustart verloren gehen.";
+     $("ratingNotice").textContent=storageWarning;
+   } else {storageWarning="";showRating();}
  }catch(_){}
 }
 
