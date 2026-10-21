@@ -548,6 +548,8 @@ function render(){
 }
 const previous=localStorage.getItem("chess1001_online_session");
 if(previous && !new URLSearchParams(location.search).has("invite")){try{session=JSON.parse(previous);$("server").value=session.server;connect();}catch(_){localStorage.removeItem("chess1001_online_session");}}
+const requestedMode=new URLSearchParams(location.search).get("mode");
+if(requestedMode && defs.some(x=>x[0]===requestedMode))$("mode").value=requestedMode;
 rule();
 loadInvitationFromLink();
 checkRatingStorage();
