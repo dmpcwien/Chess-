@@ -47,6 +47,7 @@ function info(s){$("message").textContent=s;$("message").className="";}
 function rule(){const d=defs.find(x=>x[0]===$("mode").value);$("rules").textContent=d?.[2]||"";$("limitRow").hidden=d?.[0]!=="simul";}
 $("mode").onchange=rule;rule();
 $("server").value=localStorage.getItem("chess1001_online_server")||(/^https?:$/.test(location.protocol)?location.origin:"");
+$("backApp").hidden=location.protocol!=="file:";
 $("backApp").onclick=()=>location.assign("index.html");
 $("name").value=localStorage.getItem("chess1001_online_name")||"";
 async function request(path,body){
