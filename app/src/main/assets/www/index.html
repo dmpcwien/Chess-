@@ -1459,7 +1459,7 @@ async function initStockfish(){
     let ready=false;
     const timer=setTimeout(()=>{if(!ready){ready=true;reject(new Error('Start-Timeout nach '+timeout/1000+' s'));}},timeout);
     worker.onerror=event=>{if(!ready){ready=true;clearTimeout(timer);reject(new Error(event.message||'Engine konnte nicht geladen werden'));}
-     else if(sfPending){const req=sfPending;sfPending=null;clearTimeout(req.timer);req.reject(new Error('Stockfish-Worker-Fehler'));}};
+     else if(sfPending){const req=sfPending;sfPending=null;clearTimeout(req.timer);try{worker.terminate()}catch(_){}sfWorker=null;req.reject(new Error('Stockfish-Worker-Fehler; Neustart beim nächsten Zug'));}};
     worker.onmessage=event=>{
      for(const value of String(event.data).split(/\r?\n/)){
       const line=value.trim();if(!line)continue;
@@ -1508,7 +1508,7 @@ function analyzeFen(fen,depth=11,multiPV=1,engineProfile=null){
   const value=await new Promise((resolve,reject)=>{
    const info={depth:0,scoreType:null,score:null,pv:null,variants:{}};
    const timer=setTimeout(()=>{
-    if(sfPending&&sfPending.info===info){const req=sfPending;sfPending=null;try{w.postMessage('stop')}catch(_){}req.reject(new Error('Stockfish-Antwort dauert zu lange'));}
+    if(sfPending&&sfPending.info===info){const req=sfPending;sfPending=null;try{w.postMessage('stop');w.terminate()}catch(_){}sfWorker=null;stockfishCache.clear();setEngineStatus('Stockfish wird neu gestartet','busy');req.reject(new Error('Stockfish-Antwort dauert zu lange; Engine wurde zurückgesetzt'));}
    },movetime?Math.max(12000,movetime+6500):25000);
    sfPending={resolve,reject,info,timer};
    try{
