@@ -42,6 +42,21 @@ jobs:
       - name: Check chess JavaScript syntax
         run: |
           node --check app/src/main/assets/www/analysis.js
+      - name: Install pinned Stockfish 19 Lite single-thread (offline)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/schach-stockfish19
+          cd /tmp/schach-stockfish19
+          npm pack stockfish@19.0.1 --silent > tarball-name.txt
+          tar -xzf "$(cat tarball-name.txt)"
+          JS="$(find package -type f -name 'stockfish-19-lite-single.js' -print -quit)"
+          WASM="$(find package -type f -name 'stockfish-19-lite-single.wasm' -print -quit)"
+          test -n "$JS" && test -n "$WASM"
+          python "$GITHUB_WORKSPACE/scripts/embed_stockfish19.py" "$JS" "$WASM" "$GITHUB_WORKSPACE/app/src/main/assets/www/stockfish-local-assets.js"
+          cd "$GITHUB_WORKSPACE"
+          node --check app/src/main/assets/www/stockfish-local-assets.js
+          test "$(wc -c < app/src/main/assets/www/stockfish-local-assets.js)" -gt 100000
       - name: Verify V5.59 assets
         run: |
           test -s app/src/main/assets/www/index.html
