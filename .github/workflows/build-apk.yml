@@ -128,9 +128,10 @@ jobs:
           APK=app/build/outputs/apk/online/Schach-1001-Pro-Online.apk
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name=\x27at.schach1001.pro8\x27"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 5
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "versionCode='630000'"
+          BADGING=$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK")
+          printf '%s\n' "$BADGING" | sed -n '1,5p'
+          grep -Fq "package: name='at.schach1001.pro8'" <<< "$BADGING"
+          grep -Fq "versionCode='630000'" <<< "$BADGING"
           sha256sum "$APK" > app/build/outputs/apk/online/SHA256SUMS.txt
       - name: APK bereitstellen
         uses: actions/upload-artifact@v4
