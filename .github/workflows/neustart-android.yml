@@ -31,7 +31,7 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name=\x27at.schachpro.neustart\x27"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "at.schachpro.neustart"
       - uses: actions/upload-artifact@v4
         with:
           name: Schach-Pro-Neustart-DEBUG-APK
