@@ -806,7 +806,12 @@ function claimDraw(){if(gameResult)return;const reasons=claimableDraw();if(!reas
  gameResult='Remis: '+reasons.join(', ');token++;clock.active=null;persist();archiveGame();render();setNote(gameResult)}
 function offerDraw(){if(gameResult||isTraining()||setup.mode==='analysis')return;
  if(setup.mode==='free'){if(confirm('Nimmt der Gegenspieler das Remisangebot an?')){gameResult='Remis durch Vereinbarung';clock.active=null;archiveGame();persist();render()}}
- else setNote('Gegen den Computer: Ein Remisangebot ist hier nicht implementiert. Nutze „Remis beanspruchen“, wenn eine Regel erfüllt ist.');}
+ else if(setup.mode==='computer'){
+  const reasons=claimableDraw();
+  if(reasons.length){claimDraw();return}
+  if(record.length<12){setNote('Stockfish nimmt so früh kein Remisangebot an. Spiele weiter oder nutze „Remis beanspruchen“, sobald eine Regel erfüllt ist.');return}
+  setNote('Remisangebot abgelehnt: Stockfish hat keine Remisannahme-Schnittstelle. Die Partie läuft weiter.'); 
+ }}
 function toPGN(){let outcomeVal=resultCode(gameResult);let header=`[Event "Schach 1001+ Pro"]\n[Site "Android / Offline"]\n[Date "${new Date().toISOString().slice(0,10).replaceAll('-','.')}"]\n[White "${setup.mode==='computer'&&setup.side==='b'?'Computer':'Spieler Weiß'}"]\n[Black "${setup.mode==='computer'&&setup.side==='w'?'Computer':'Spieler Schwarz'}"]\n[Result "${outcomeVal}"]\n\n`;
  let body='';for(let i=0;i<record.length;i++){if(i%2===0)body+=(Math.floor(i/2)+1)+'. ';body+=record[i].san+' ';}
  return header+body+outcomeVal+'\n';}
@@ -3465,7 +3470,7 @@ function v555Init(goPage){
   v555SyncSetup();elem('v555Options').open=true;elem('v555Options').scrollIntoView({block:'nearest',behavior:'instant'})});
  modal.querySelectorAll('[data-v555side]').forEach(b=>b.onclick=()=>{v555SelectedSide=b.dataset.v555side;v555SyncSetup()});
  time.onchange=()=>{setup.time=time.value;refreshTimePicker();persist()};
- elem('v555Undo').onclick=()=>elem('gameUndo')?.click();elem('v555Resign').onclick=()=>elem('gameResign')?.click();elem('v555Draw').onclick=()=>elem('gameOffer')?.click();
+ elem('v555Undo').onclick=()=>undo();elem('v555Resign').onclick=()=>resign();elem('v555Draw').onclick=()=>offerDraw();
  window.ChessAnalysisQA=Object.assign(window.ChessAnalysisQA||{}, {v555OpenSetup:v555GoSetup,v555Start,v555EnterPlay,v555Phase:()=>v555Phase});
 }
 
