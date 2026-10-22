@@ -585,7 +585,8 @@ if(launchedFromApp){
 rule();
 loadInvitationFromLink();
 checkRatingStorage();
-if(launchedFromApp && !appParams.has("invite") && !previous && requestedMatch!=="join"){
+if(launchedFromApp && !appParams.has("invite") && requestedMatch!=="join"){
+  localStorage.removeItem("chess1001_online_session");
   if(requestedMatch==="quick" && $("mode").value!=="simul")$("quickplay").click();
   else if(requestedMatch==="private")$("create").click();
 }
