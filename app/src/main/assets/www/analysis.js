@@ -257,7 +257,8 @@ function render(){
  if(planBadge){planBadge.hidden=!premovePlan.length;planBadge.textContent=premovePlan.length?'VIRTUELLE STELLUNG · '+premovePlan.length+' geplante Züge · Antworten des Computers sind nicht vorhersehbar':'';}
  const shownLast=inReview?reviewPly:record.length;
  const last=shownLast?record[shownLast-1]:null,options=inReview?[]:legal(pos);
- const visualKey=[toFen(shownPos),picked,flip,setup.side,reviewPly??'live',
+ const blindLevel=Number(window.schachOfflineBlindLevel)||0;
+ const visualKey=[toFen(shownPos),picked,flip,setup.side,blindLevel,reviewPly??'live',
     premovePlan.map(x=>x.f+'-'+x.t).join(','),window.SchachLastMove?.enabled()?'lastOn':'lastOff',last?.f??'',last?.t??'',
     bestVisible()&&suggestedMove?.fen===toFen(pos)?(suggestedMove.f+'-'+suggestedMove.t):'nohint',v517Prefs.legalDots?'dots':'nodots'].join('|');
  if(boardRenderKey!==visualKey){
@@ -266,14 +267,19 @@ function render(){
  for(let i=0;i<64;i++){
  let idx0=arr[i],pc=shownPos.board[idx0],box=document.createElement('div');box.className='gameSq '+((Math.floor(idx0/8)+idx0%8)%2===0?'light':'dark');box.dataset.i=idx0;
  if(idx0===picked)box.classList.add('picked');
- if(shownPos.board[idx0]===(shownPos.turn===W?'K':'k')&&inCheck(shownPos,shownPos.turn))box.classList.add('v514CheckKing');if(premovePlan.some(m=>m.f===idx0))box.classList.add('queuedFrom');if(premovePlan.some(m=>m.t===idx0))box.classList.add('queuedTo');if(last&&window.SchachLastMove?.enabled()){if(last.f===idx0)box.classList.add('lastMoveFrom');if(last.t===idx0)box.classList.add('lastMoveTo');}if(!inReview&&bestVisible()&&suggestedMove&&suggestedMove.fen===toFen(pos)){if(idx0===suggestedMove.f)box.classList.add('bestFrom');if(idx0===suggestedMove.t)box.classList.add('bestTo')}
- if(v517Prefs.legalDots&&!inReview&&picked>=0&&!canQueuePremove()&&options.some(m=>m.f===picked&&m.t===idx0)){let dot=document.createElement('span');dot.className=pc?'targetRing':'targetDot';box.appendChild(dot)}
- if(pc){let image=document.createElement('img');image.src='./theme_pieces/'+imgMap[pc];image.alt=(isW(pc)?'Weißer ':'Schwarzer ')+nm[pc.toUpperCase()];image.draggable=false;image.className='gamePiece';box.appendChild(image)}
+ if(shownPos.board[idx0]===(shownPos.turn===W?'K':'k')&&inCheck(shownPos,shownPos.turn))box.classList.add('v514CheckKing');if(premovePlan.some(m=>m.f===idx0))box.classList.add('queuedFrom');if(premovePlan.some(m=>m.t===idx0))box.classList.add('queuedTo');if(!blindLevel&&last&&window.SchachLastMove?.enabled()){if(last.f===idx0)box.classList.add('lastMoveFrom');if(last.t===idx0)box.classList.add('lastMoveTo');}if(!blindLevel&&!inReview&&bestVisible()&&suggestedMove&&suggestedMove.fen===toFen(pos)){if(idx0===suggestedMove.f)box.classList.add('bestFrom');if(idx0===suggestedMove.t)box.classList.add('bestTo')}
+ if(!blindLevel&&v517Prefs.legalDots&&!inReview&&picked>=0&&!canQueuePremove()&&options.some(m=>m.f===picked&&m.t===idx0)){let dot=document.createElement('span');dot.className=pc?'targetRing':'targetDot';box.appendChild(dot)}
+ if(pc&&blindLevel!==5){
+  const type=pc.toLowerCase();
+  const visible=blindLevel===0||(blindLevel===1&&!['n','b'].includes(type))||(blindLevel===2&&['p','q','k'].includes(type))||(blindLevel===3&&type==='p');
+  if(visible){let image=document.createElement('img');image.src='./theme_pieces/'+imgMap[pc];image.alt=(isW(pc)?'Weißer ':'Schwarzer ')+nm[pc.toUpperCase()];image.draggable=false;image.className='gamePiece';box.appendChild(image)}
+  else if(blindLevel===4){let disk=document.createElement('span');disk.className='vBlindDisk';disk.style.cssText='display:block;width:67%;height:67%;border-radius:50%;background:'+(isW(pc)?'#e7e7e2':'#292d32')+';border:2px solid '+(isW(pc)?'#92989a':'#9fa5aa')+';box-shadow:0 2px 5px #0005';disk.setAttribute('aria-label',isW(pc)?'Weiße Figur':'Schwarze Figur');box.appendChild(disk)}
+ }
  if(i>=56){let c=document.createElement('span');c.className='gameCoord fileCoord';c.textContent=files[idx0%8];box.appendChild(c)}
  if(i%8===0){let c=document.createElement('span');c.className='gameCoord rankCoord';c.textContent=8-Math.floor(idx0/8);box.appendChild(c)}
  box.onclick=()=>{if(inReview||Date.now()<clickSuppress)return;selectOrMove(idx0)};board.appendChild(box);
  }
- if(!inReview&&bestVisible()&&suggestedMove&&suggestedMove.fen===toFen(pos)){
+ if(!blindLevel&&!inReview&&bestVisible()&&suggestedMove&&suggestedMove.fen===toFen(pos)){
   const from=arr.indexOf(suggestedMove.f),to=arr.indexOf(suggestedMove.t);
   if(from>=0&&to>=0){
    const ax=(from%8+0.5)*100,ay=(Math.floor(from/8)+0.5)*100,bx=(to%8+0.5)*100,by=(Math.floor(to/8)+0.5)*100;
@@ -3348,10 +3354,10 @@ function v555SyncSetup(){
  elem('v555Time').closest('.v555SelectLine').hidden=online;
  document.querySelectorAll('#v555Setup [data-v555side]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v555side===v555SelectedSide)));
  const variant=elem('v558Variant')?.value||'standard';
- const onlyOnline=!online&&variant!=='standard';
+ const onlyOnline=!online&&variant!=='standard'&&!/^blind[1-5]$/.test(variant);
  elem('v555SetNote').textContent=online
  ?'Deine Einstellungen sind übernommen. Suche einen Gegner oder erstelle eine private Partie mit QR-Code bzw. Einladungslink. Rating nur mit ausdrücklicher Auswahl.'
- :onlyOnline?'Diese Sondervariante benötigt eigene Regeln und wird derzeit nur online unterstützt. Offline ist klassisches Schach verfügbar.'
+ :onlyOnline?'Diese Sondervariante benötigt eigene Regeln und wird derzeit nur online unterstützt. Offline sind klassisches Schach und fünf Blindschach-Stufen verfügbar.'
  :v555CurrentMode==='free'?'Zwei Personen spielen abwechselnd am selben Gerät.'
  :v555CurrentMode==='coach'?'Offline gegen Stockfish mit Trainer – ohne Internet.'
  :'Offline gegen Stockfish: wähle die Stärke und starte direkt auf dem lokalen Schachbrett.';
@@ -3386,7 +3392,7 @@ function v555Start(){
  const mode=elem('v555Mode').value;
  const variant=elem('v558Variant')?.value||'standard';
  if(mode==='online'){v559OpenOnline();return;}
- if(variant!=='standard'){
+ if(variant!=='standard'&&!/^blind[1-5]$/.test(variant)){
   elem('v555SetNote').textContent='Diese Variante benötigt eigene Zugregeln und ist offline noch nicht verfügbar. Bitte klassisches Schach oder Online wählen.';
   elem('v558Variant').focus();
   return;
@@ -3397,6 +3403,7 @@ function v555Start(){
  flip=false;
  v553Prefs.pieces=elem('v555Pieces').value;v553Prefs.board=elem('v555Board').value;v553Save();v553ApplyLook();
  setCoachVisibility(mode==='coach');
+ window.schachOfflineBlindLevel=/^blind[1-5]$/.test(variant)?Number(variant.slice(-1)):0;
  gameNew();v555EnterPlay();
 }
 function v555Init(goPage){
