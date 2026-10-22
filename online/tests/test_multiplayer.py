@@ -79,9 +79,9 @@ def test_rated_online_time_gift_is_rejected():
     with TestClient(app) as client:
         alice = client.post("/api/players", json={"name": "Alice"}).json()
         bob = client.post("/api/players", json={"name": "Bob"}).json()
-        host = client.post("/api/rooms", json={"name": "Alice", "mode": "standard", "rated": True, "player_token": alice["token"]}).json()
+        host = client.post("/api/rooms", json={"name": "Alice", "mode": "standard", "rated": True, "player_token": alice["player_token"]}).json()
         assert "code" in host, host
-        guest = client.post(f"/api/rooms/{host['code']}/join", json={"name": "Bob", "player_token": bob["token"]}).json()
+        guest = client.post(f"/api/rooms/{host['code']}/join", json={"name": "Bob", "player_token": bob["player_token"]}).json()
         assert "board_id" in guest, guest
         bid = guest["board_id"]
         with client.websocket_connect(f"/ws/{host['code']}/{host['token']}") as host_ws:
