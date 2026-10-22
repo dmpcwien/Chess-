@@ -422,6 +422,13 @@ function v532EnginePlan(elo,remainingMs){
  if(Number.isFinite(remainingMs)&&remainingMs>0)movetime=Math.min(movetime,Math.max(250,Math.floor(remainingMs/18)));
  return {engineElo:rating,depth,movetime,skill:20};
 }
+function retryComputerMove(){
+ if(setup.mode!=='computer'){setNote('Computerzug ist nur im Modus gegen Stockfish verfügbar.',true);return;}
+ if(gameResult||outcome(pos)){setNote('Die Partie ist bereits beendet.',true);return;}
+ if(pos.turn===setup.side){setNote('Du bist am Zug.',true);return;}
+ if(busy){setNote('Stockfish berechnet bereits einen Zug. Bitte kurz warten.');return;}
+ scheduleComputer();
+}
 async function scheduleComputer(){
  if(busy||outcome(pos)||gameResult||isTraining()||setup.mode!=='computer'||pos.turn===setup.side)return;
  busy=true;const t=++token;render();await new Promise(resolve=>setTimeout(resolve,70));
@@ -443,7 +450,7 @@ async function scheduleComputer(){
  if(t!==token){busy=false;render();return}
  if(!chosen){
   busy=false;render();
-  setNote('Stockfish hat keinen gültigen Zug geliefert. Bitte Engine prüfen und den Computerzug erneut starten. Es wird kein zufälliger Zug gespielt.',true);
+  setNote('Stockfish hat keinen gültigen Zug geliefert. Tippe auf „Computerzug erneut“, um Stockfish neu zu starten. Es wird kein zufälliger Zug gespielt.',true);
   return;
  }
  busy=false;if(t!==token||gameResult)return;
@@ -3484,6 +3491,8 @@ function v555Init(goPage){
  const game=elem('gameContent'),header=document.createElement('div');header.id='v555PlayHeader';header.innerHTML='<button type="button" id="v555PlayBack" aria-label="Zur Partieauswahl">‹</button><strong>♟ Schach 1001+ Pro</strong>';game.prepend(header);
  const actions=document.createElement('div');actions.id='v555PlayActions';actions.innerHTML='<button type="button" id="v555Undo"><span>↶</span>Zug zurücknehmen</button><button type="button" id="v555Resign"><span>⚑</span>Aufgeben</button><button type="button" id="v555Draw"><span>♧</span>Remis anbieten</button>';
  elem('gameBoard').closest('.gameBoardPanel').append(actions);
+ const retry=document.createElement('button');retry.type='button';retry.id='v562RetryComputer';retry.textContent='♟ Computerzug erneut';retry.title='Stockfish nach einem Engine-Fehler erneut starten';retry.onclick=retryComputerMove;actions.append(retry);
+
  elem('v555Back').onclick=()=>goPage('home');elem('v555PlayBack').onclick=v555GoSetup;
  elem('v555Quick').onclick=v555Start;elem('v555SetStart').onclick=v555Start;
  elem('v555Resume').onclick=v555EnterPlay;
