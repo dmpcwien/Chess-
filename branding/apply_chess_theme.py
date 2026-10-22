@@ -23,6 +23,7 @@ SELECTOR = """<!-- chess1001-board-theme-picker -->
 <div class="chess1001-board-theme-picker">
   <label for="chess1001-board-theme">♟ Brett &amp; Figuren</label>
   <select id="chess1001-board-theme" aria-label="Design für Brett und Figuren">
+    <option value="modern-green">Modern Grün &amp; Creme</option>
     <option value="gold-metal">Gold &amp; Schwarzmetall</option>
     <option value="classic">Klassisch</option>
   </select>
@@ -45,6 +46,29 @@ SKIN = """
   max-width:64%;min-width:0;min-height:39px;
   padding:7px 10px;border:1px solid #926d3c;border-radius:10px;
   background:#1d1c1c;color:#f5d58e;font:inherit;
+}
+html[data-chess-theme="modern-green"]{
+  --light:#eeeed2;--dark:#779954;--accent:#8db568;
+  --hint:#c6d765;--sel:#f6e27a;
+}
+html[data-chess-theme="modern-green"] body{
+  background:#202020!important;
+}
+html[data-chess-theme="modern-green"] .board{
+  border:2px solid #343a34;border-radius:12px;overflow:hidden;
+  box-shadow:0 8px 26px #0007;
+}
+html[data-chess-theme="modern-green"] .sq.light{
+  background:#eeeed2!important;
+}
+html[data-chess-theme="modern-green"] .sq.dark{
+  background:#779954!important;
+}
+html[data-chess-theme="modern-green"] .pieceImg{
+  filter:drop-shadow(0 2px 1px #0005);
+}
+html[data-chess-theme="modern-green"] .sq.selected{
+  box-shadow:inset 0 0 0 4px #f3d95c;
 }
 html[data-chess-theme="gold-metal"]{
   --light:#d3a358;--dark:#171a1f;--accent:#e7bb66;
@@ -99,12 +123,12 @@ html[data-chess-theme="gold-metal"] .sq.dark .coord{
  const picker=document.getElementById("chess1001-board-theme");
  if(!picker)return;
  function apply(v){
-   const theme=v==="classic"?"classic":"gold-metal";
+   const theme=["classic","gold-metal","modern-green"].includes(v)?v:"modern-green";
    document.documentElement.setAttribute("data-chess-theme",theme);
    picker.value=theme;
    try{localStorage.setItem(KEY,theme);}catch(_){}
  }
- let saved="gold-metal";
+ let saved="modern-green";
  try{saved=localStorage.getItem(KEY)||saved;}catch(_){}
  picker.addEventListener("change",function(){apply(picker.value);});
  apply(saved);
@@ -116,4 +140,4 @@ html[data-chess-theme="gold-metal"] .sq.dark .coord{
 assert "</body>" in html, "Closing </body> missing in offline chess HTML"
 html=html.replace("</body>", SKIN + "\n</body>", 1)
 INDEX.write_text(html,"utf-8")
-print("Chess 1001 offline: switchable gold/black metal board and piece styling installed")
+print("Chess 1001 offline: modern green/cream, gold metal and classic themes installed")
