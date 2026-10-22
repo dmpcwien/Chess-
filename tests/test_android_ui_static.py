@@ -33,7 +33,8 @@ class ChessControls(unittest.TestCase):
         bot = JS[start:end]
         self.assertIn("window.analyzeFen", bot)
         self.assertIn("const useStockfish=true", bot)
-        self.assertIn("Kein Ersatzgegner wird verwendet.", bot)
+        self.assertIn("Kein Ersatzgegner.", bot)
+        self.assertIn("Schwarz zieht nicht:", bot)
         self.assertIn("if(!chosen)", bot)
         self.assertNotIn("Math.random()", bot)
         self.assertNotIn("think(pos,", bot)
