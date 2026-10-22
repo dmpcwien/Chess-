@@ -291,7 +291,7 @@ function render(){
  } // End visual board update: layout and animated pieces survive status-only renders.
  const msg=gameResult||legalDrawState()||outcome(pos);elem('gameTurn').textContent=inReview?('Rückblick · '+(reviewPly===0?'Ausgangsstellung':'Zug '+reviewPly+'/'+record.length)):msg||((pos.turn===W?'Weiß':'Schwarz')+' am Zug'+(inCheck(pos,pos.turn)?' · Schach!':''));
  const v560Info=elem('v560PlayerInfo');if(v560Info){const level=Number(window.schachOfflineBlindLevel)||0;const gameType=level?'Blindschach '+level:setup.mode==='opening'?'Training':setup.mode==='analysis'?'Analyse':'Klassisch';const points=Math.round(Number(summaryStore.trainingRating)||1000);v560Info.textContent=(setup.mode==='computer'?'🤖 '+setup.elo+' · ':'👥 ')+gameType+' · '+points+' P.';v560Info.title='Spieltyp: '+gameType+' · '+(setup.mode==='computer'?'Computerstärke: '+setup.elo+' · ':'')+'Lokale Trainingspunkte: '+points+' (keine Online-Elo)';}
- elem('gameThinking').textContent=busy?'Computer denkt …':(setup.mode==='computer'?(setup.elo>=2000||setup.engine==='stockfish'?'Stockfish 19 Lite · Profil '+setup.elo:'Offline-Spielgegner · Stärkeprofil '+setup.elo):setup.mode==='opening'?'Eröffnungstraining':'Analyse: Stockfish 19 Lite');elem('gameUndo').disabled=!record.length||busy;
+ elem('gameThinking').textContent=busy?'Computer denkt …':(setup.mode==='computer'?(setup.elo>=2000||setup.engine==='stockfish'?'Stockfish 19 Lite · Profil '+setup.elo:'Offline-Spielgegner · Stärkeprofil '+setup.elo):setup.mode==='opening'?'Eröffnungstraining':'Analyse: Stockfish 19 Lite');elem('gameUndo').disabled=!record.length;
  v533OpeningHintPaint();renderPlyHistory();v514UpdateGameSummary();const sfValue=sfPositionScore&&sfPositionScore.fen===toFen(pos)?sfPositionScore.whiteCp:null;updateSideEvaluation(sfValue);paintClock();
 }
 function setReviewPly(ply){
@@ -423,7 +423,7 @@ function v532EnginePlan(elo,remainingMs){
  return {engineElo:rating,depth,movetime,skill:20};
 }
 async function scheduleComputer(){
- if(busy||outcome(pos)||gameResult||isTraining())return;
+ if(busy||outcome(pos)||gameResult||isTraining()||setup.mode!=='computer'||pos.turn===setup.side)return;
  busy=true;const t=++token;render();await new Promise(resolve=>setTimeout(resolve,70));
  if(t!==token){busy=false;render();return}
  if(isTimed())updateClock();if(gameResult){busy=false;return}
@@ -441,16 +441,11 @@ async function scheduleComputer(){
   }catch(e){if(t===token)setNote('Stockfish konnte den Zug nicht berechnen. '+(e?.message||'')+' Einfacher Notfallgegner übernimmt.',true)}
  }
  if(t!==token){busy=false;render();return}
- if(!chosen&&plan){
-  // A stalled engine must never leave the opponent unable to move.
-  // The built-in fallback is not advertised as equivalent to the selected Stockfish Elo.
-  setNote('Stockfish hat keinen Zug geliefert. Der Offline-Ersatzgegner übernimmt diesen Zug.',true);
+ if(!chosen){
+  busy=false;render();
+  setNote('Stockfish hat keinen gültigen Zug geliefert. Bitte Engine prüfen und den Computerzug erneut starten. Es wird kein zufälliger Zug gespielt.',true);
+  return;
  }
-
- if(!chosen){try{const level=Math.max(1,Math.min(9,Math.round((Math.min(setup.elo,2000)-400)/200)+1)),item=think(pos,level);chosen=item&&item.m}catch(err){setNote('Ersatzgegner: '+(err?.message||'Berechnung fehlgeschlagen'),true)}}
- if(!chosen){const all=legal(pos);if(all.length){chosen=all[Math.floor(Math.random()*all.length)];setNote('Notfallzug gespielt. Die gewählte Bot-Stärke konnte nicht garantiert werden.',true)}}
- // Ab 2000 ELO niemals den schwächeren Stile-Umweg verwenden.
- if(chosen&&engineUsed==='offline'&&!plan&&v58prefs.style!=='ausgeglichen')chosen=v58StyledMove(pos,chosen);
  busy=false;if(t!==token||gameResult)return;
  if(chosen){playMove(chosen,false);if(engineUsed==='stockfish')setNote('Stockfish hat '+record.at(-1).san+' gespielt.')}else render();
 }
@@ -464,7 +459,7 @@ function gameNew(){
  elem('gameBestReadout').textContent='Tippe auf „Besten Zug prüfen“, um den nächsten Zug zu sehen.';refreshCoach();
  setNote('Neue Partie gestartet. Ziehe eine Figur oder tippe auf Start- und Zielfeld.');persist();render();if(setup.mode==='computer'&&setup.side===B)scheduleComputer();if(isTraining()){trainingMessage();if(pos.turn!==opening().side)openingAuto()}renderProfile();
 }
-function undo(){reviewPly=null;premove=null;premovePlan=[];v57StopSpeech();token++;busy=false;suggestedMove=null;analysisSequence++;clearFlights();let count=(setup.mode==='computer'&&record.length>=2)?2:1;
+function undo(){reviewPly=null;premove=null;premovePlan=[];v57StopSpeech();token++;busy=false;suggestedMove=null;analysisSequence++;clearFlights();let count=(setup.mode==='computer'&&record.length>=2&&pos.turn===setup.side)?2:1;
  for(let j=0;j<count&&record.length;j++){let z=record.pop();pos=fromFen(z.before);clock=z.beforeClock||newClock();}
  if(record.length<2)clock=newClock();else clock.lastAt=Date.now();gameResult=null;clock.finished=null;openingCompleted=false;picked=-1;setNote('Zug zurückgenommen.');elem('gameAnalysis').textContent='Analyse wird nach dem nächsten Zug aktualisiert.';persist();render();if(setup.mode==='computer'&&pos.turn!==setup.side)scheduleComputer();if(isTraining()){trainingMessage();if(pos.turn!==opening().side)openingAuto()}}
 async function analyze(){
