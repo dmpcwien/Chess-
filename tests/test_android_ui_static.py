@@ -48,7 +48,7 @@ class ChessControls(unittest.TestCase):
     def test_local_two_player_board_rotation_and_clock_gift(self):
         self.assertIn("flip=pos.turn==='b'", JS)
         self.assertIn("v561PersonLayout()", JS)
-        self.assertIn("id=\\"v561AddTime\\"", JS)
+        self.assertIn('id="v561AddTime"', JS)
         self.assertIn("clock[recipient]=Math.max(0,clock[recipient])+15000", JS)
 
     def test_clock_ticks_in_active_game(self):
