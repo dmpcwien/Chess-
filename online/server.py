@@ -137,6 +137,7 @@ class Room:
     connections: dict[str, set[WebSocket]] = field(default_factory=dict)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     last_active: float = field(default_factory=time.monotonic)
+    created_at: float = field(default_factory=time.monotonic)
 
     def is_member(self, token: str) -> bool:
         return token == self.host_token or any(
@@ -303,7 +304,7 @@ async def quickplay(req: QuickPlayRequest):
                             # Start with a 200-point window; expand as a player waits.
                             abs(float(player_rating["rating"]) - float(
                                 get_store().get_rating(room.host_player_id, req.mode)["rating"]
-                            )) <= min(800, 200 + 20 * max(0, now - room.last_active))
+                            )) <= min(800, 200 + 20 * max(0, now - room.created_at))
                         )
                     )
                     and now - room.last_active < 90
