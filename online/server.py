@@ -288,12 +288,24 @@ async def quickplay(req: QuickPlayRequest):
     if req.mode not in MODES or req.mode == "simul":
         raise HTTPException(422, "Für diesen Modus gibt es keine automatische Gegnersuche.")
     player = rated_player(req.player_token) if req.rated else None
+    player_rating = get_store().get_rating(player["id"], req.mode) if player else None
     async with quickplay_lock:
         now = time.monotonic()
         for room in list(rooms.values()):
             if (room.public and room.mode == req.mode and room.rated == req.rated
                     and not room.matches
                     and (not player or room.host_player_id != player["id"])
+                    and (
+                        not req.rated
+                        or not player_rating
+                        or not room.host_player_id
+                        or (
+                            # Start with a 200-point window; expand as a player waits.
+                            abs(float(player_rating["rating"]) - float(
+                                get_store().get_rating(room.host_player_id, req.mode)["rating"]
+                            )) <= min(800, 200 + 20 * max(0, now - room.last_active))
+                        )
+                    )
                     and now - room.last_active < 90
                     and (room.connections.get(room.host_token) or now - room.last_active < 10)):
                 async with room.lock:
