@@ -401,7 +401,7 @@ function playMove(m,human,fromGhost=null){
  record.push({f:m.f,t:m.t,san,uci:sq(m.f)+sq(m.t)+(m.promo||''),before:toFen(before),after:toFen(pos),actor:human?'Mensch':'Computer',beforeClock:oldClock});
  if(setup.mode==='free'&&elem('v561Moves')){const strip=elem('v561Moves');strip.textContent=record.slice(-18).map((entry,i)=>entry.san).join('  ·  ');strip.scrollLeft=strip.scrollWidth;}
  v57HintLevel=0;if(elem('v57GameHintText'))elem('v57GameHintText').textContent='Tippe auf Hinweis für drei aufeinanderfolgende Hilfestufen.';if(v57prefs.vibrate&&navigator.vibrate)navigator.vibrate(15);
- picked=-1;token++;persist();render();v517AfterMove(m,human);if(fromRect)floatPiece({t:m.t,pc:before.board[m.f],sourceRect:fromRect});
+ picked=-1;token++;if(setup.mode==='free'){flip=pos.turn==='b';}persist();render();if(setup.mode==='free')v561PersonLayout();v517AfterMove(m,human);if(fromRect)floatPiece({t:m.t,pc:before.board[m.f],sourceRect:fromRect});
  let end=outcome(pos);if(end){gameResult=end;if(isTimed())clock.active=null;persist();archiveGame();render()}
  const forced=legalDrawState();if(forced&&!gameResult){gameResult=forced;clock.active=null;persist();archiveGame();render()}
  if(isTraining()&&!gameResult){if(record.length>=opening().uci.length){completeOpening()}else {trainingMessage();if(pos.turn!==opening().side)openingAuto()}}
@@ -3437,7 +3437,7 @@ function v555Start(){
  v553Prefs.pieces=elem('v555Pieces').value;v553Prefs.board=elem('v555Board').value;v553Save();v553ApplyLook();
  setCoachVisibility(mode==='coach');
  window.schachOfflineBlindLevel=/^blind[1-5]$/.test(variant)?Number(variant.slice(-1)):0;
- gameNew();v555EnterPlay();
+ gameNew();if(setup.mode==='free')flip=false;v555EnterPlay();
 }
 function v555Init(goPage){
  if(v555Inited)return;v555Inited=true;
