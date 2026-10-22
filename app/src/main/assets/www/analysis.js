@@ -434,7 +434,7 @@ async function scheduleComputer(){
  busy=true;const t=++token;render();await new Promise(resolve=>setTimeout(resolve,70));
  if(t!==token){busy=false;render();return}
  if(isTimed())updateClock();if(gameResult){busy=false;return}
- let chosen=null,engineUsed='offline';
+ let chosen=null,engineUsed='offline',engineFailure='';
  const plan=v532EnginePlan(setup.elo,isTimed()?clock[pos.turn]:Infinity);
  const useStockfish=true; // All computer levels require a real Stockfish move.
  if(useStockfish&&typeof window.analyzeFen==='function'){
@@ -445,12 +445,12 @@ async function scheduleComputer(){
    const depth=plan?plan.depth:Math.max(5,Math.min(15,7+Math.round(level/3)));
    const sf=await window.analyzeFen(toFen(pos),depth,1,options);
    if(t===token&&sf&&sf.bestmove){chosen=legal(pos).find(m=>moveUci(m)===sf.bestmove);if(chosen)engineUsed='stockfish'}
-  }catch(e){if(t===token)setNote('Stockfish konnte den Zug nicht berechnen. '+(e?.message||'')+' Kein Ersatzgegner wird verwendet.',true)}
+  }catch(e){engineFailure=String(e?.message||e||'Unbekannter Engine-Fehler');if(t===token)setNote('Stockfish-Fehler: '+engineFailure+' · Kein Ersatzgegner.',true)}
  }
  if(t!==token){busy=false;render();return}
  if(!chosen){
   busy=false;render();
-  setNote('Stockfish hat keinen gültigen Zug geliefert. Tippe auf „Computerzug erneut“, um Stockfish neu zu starten. Es wird kein zufälliger Zug gespielt.',true);
+  setNote('Schwarz zieht nicht: '+(engineFailure||'Stockfish lieferte keinen legalen Zug oder konnte nicht geladen werden.')+' · Tippe auf „Computerzug erneut“.',true);
   return;
  }
  busy=false;if(t!==token||gameResult)return;
