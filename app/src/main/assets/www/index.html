@@ -1591,18 +1591,39 @@ $('next').onclick=nextPuzzle; $('random').onclick=randomPuzzle; $('hint').onclic
 #v556Appearance{position:fixed;z-index:101;right:8px;top:calc(env(safe-area-inset-top,0px) + 7px);background:#1e2025;color:#f4cc79;border:1px solid #916b3d;border-radius:10px;padding:8px 9px;font-size:12px;min-height:39px}
 .v512BottomNav{grid-template-columns:repeat(6,minmax(0,1fr))!important}.v512BottomNav button{font-size:11px}.v512BottomNav button small{font-size:10px!important}
 </style>
-<select id="v556Appearance" aria-label="Brettdesign"><option value="metal">♞ Gold / Metall</option><option value="classic">Klassisch</option></select>
+<select id="v556Appearance" aria-label="Brettdesign"><option value="lichess">🌿 Grün / Creme</option><option value="metal">♞ Gold / Metall</option><option value="classic">Klassisch</option><option value="wood">🪵 Holz</option><option value="blue">🔵 Blau / Weiß</option><option value="dark">🌑 Dunkel</option></select>
 
 <script>
 (function(){'use strict';
 const sel=document.getElementById('v556Appearance');
-function apply(s){document.documentElement.dataset.v556Theme=s==='classic'?'classic':'metal';sel.value=s;try{localStorage.setItem('chess1001_board_theme',s==='classic'?'classic':'gold-metal');}catch(_){}}
-let old='gold-metal';try{old=localStorage.getItem('chess1001_board_theme')||old}catch(_){}
-apply(old==='classic'?'classic':'metal');
+function apply(s){const allowed=['lichess','metal','classic','wood','blue','dark'];s=allowed.includes(s)?s:'lichess';document.documentElement.dataset.v556Theme=s;sel.value=s;try{localStorage.setItem('chess1001_board_theme',s==='metal'?'gold-metal':s);}catch(_){}}
+let old='lichess';try{old=localStorage.getItem('chess1001_board_theme')||old}catch(_){}
+apply(old==='gold-metal'?'metal':old);
 sel.addEventListener('change',()=>apply(sel.value));
 
 })();
 </script>
 <!-- SCHACH-PRO-V556-GOLD-END -->
+<!-- V5.60 BOARD THEMES AND FIXED RESPONSIVE GAME BOARD -->
+<style>
+:root[data-v556-theme="lichess"]{--light:#eeeed2;--dark:#769656}
+:root[data-v556-theme="wood"]{--light:#e6c99b;--dark:#a36a3d}
+:root[data-v556-theme="blue"]{--light:#e9eff7;--dark:#668bb3}
+:root[data-v556-theme="dark"]{--light:#a5aab0;--dark:#41464d}
+[data-v556-theme="lichess"] .gameSq.light,[data-v556-theme="lichess"] .v529Sq.light,[data-v556-theme="lichess"] .v538Sq.light,[data-v556-theme="lichess"] .sq.light,
+[data-v556-theme="wood"] .gameSq.light,[data-v556-theme="wood"] .v529Sq.light,[data-v556-theme="wood"] .v538Sq.light,[data-v556-theme="wood"] .sq.light,
+[data-v556-theme="blue"] .gameSq.light,[data-v556-theme="blue"] .v529Sq.light,[data-v556-theme="blue"] .v538Sq.light,[data-v556-theme="blue"] .sq.light,
+[data-v556-theme="dark"] .gameSq.light,[data-v556-theme="dark"] .v529Sq.light,[data-v556-theme="dark"] .v538Sq.light,[data-v556-theme="dark"] .sq.light{background:var(--light)!important}
+[data-v556-theme="lichess"] .gameSq.dark,[data-v556-theme="lichess"] .v529Sq.dark,[data-v556-theme="lichess"] .v538Sq.dark,[data-v556-theme="lichess"] .sq.dark,
+[data-v556-theme="wood"] .gameSq.dark,[data-v556-theme="wood"] .v529Sq.dark,[data-v556-theme="wood"] .v538Sq.dark,[data-v556-theme="wood"] .sq.dark,
+[data-v556-theme="blue"] .gameSq.dark,[data-v556-theme="blue"] .v529Sq.dark,[data-v556-theme="blue"] .v538Sq.dark,[data-v556-theme="blue"] .sq.dark,
+[data-v556-theme="dark"] .gameSq.dark,[data-v556-theme="dark"] .v529Sq.dark,[data-v556-theme="dark"] .v538Sq.dark,[data-v556-theme="dark"] .sq.dark{background:var(--dark)!important}
+.gameBoard,.v529Board,.v538Board{width:min(100%,calc(100dvh - 245px),720px)!important;max-width:100%!important;height:auto!important;aspect-ratio:1/1!important;touch-action:manipulation;overscroll-behavior:contain;margin-inline:auto!important;flex-shrink:0}
+.gameBoardPanel{min-width:0!important;overflow-x:hidden}
+.gameSq,.v529Sq,.v538Sq{touch-action:manipulation}
+@media(max-width:600px){.gameColumns{display:block!important;min-width:0!important}.gameBoardPanel{padding:3px!important}.gameBoardMeta{padding:3px 4px!important;gap:5px!important}.gameBoard,.v529Board,.v538Board{width:min(100%,calc(100dvh - 215px))!important}}
+@media(max-height:640px){.gameBoard,.v529Board,.v538Board{width:min(100%,calc(100dvh - 160px))!important}}
+</style>
+
 
 </body></html>
