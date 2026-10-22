@@ -703,7 +703,7 @@ function v547ShowEnd(){
  if(!v547Current)return;v547Open();v547Screen='end';elem('v547Title').textContent='Partie beendet';
  const s=v547Current,score=s.score,reason=v547ResultCause(s.result),delta=s.pointDelta;
  const draw=s.result.startsWith('Remis'),won=v547Winner(s.result,s.side,s.archive?.mode||setup.mode),headline=draw?'Remis!':won?'Du hast gewonnen!':'Du hast verloren.';
- const rating=Number.isFinite(s.points)&&s.points?'<div class="v547Training"><strong>♜ '+s.points+'</strong><span>Trainingspunkte'+(delta>0?' · +'+delta:delta<0?' · '+delta:'')+'</span><small>Lokales Training, kein offizielles Elo</small></div>':'';
+ const rating=Number.isFinite(s.points)&&s.points&&s.archive?.mode==='computer'?'<div class="v547Training"><strong>♜ '+s.points+' Trainingspunkte</strong><span>Vorher: '+(s.points-delta)+' · Änderung: '+(delta>0?'+':'')+delta+' · Jetzt: '+s.points+'</span><small>Lokales Trainingsrating – keine offizielle Elo- oder Online-Glicko-2-Wertung</small></div>':'';
  const cached=v547ReadCached(),done=!!(s.items?.length===s.moves.length&&s.moves.length)||(cached?.items?.length===s.moves.length&&s.moves.length>0);
  elem('v547Content').innerHTML='<section class="v547Victory"><p class="v547Kicker">SCHACH 1001+ PRO</p><h1>'+escapeHtml(headline)+'</h1><p class="v547Reason">'+escapeHtml(reason)+'</p><div class="v547Versus"><div><div class="v547BadgePiece">♟</div><strong>Du</strong></div><span class="v547Vs">'+escapeHtml(score)+'</span><div><div class="v547BadgePiece v547Opp">♟</div><strong>'+escapeHtml(s.opponent)+'</strong></div></div><div class="v547Twins"><button data-v547="rematch">↻ Revanche</button><button data-v547="new">♟ Neue Partie</button></div></section>'+rating+
  '<section class="v547Coach"><div class="v547Avatar" aria-hidden="true">♟</div><p><strong>Dein Schach-Coach</strong><span>'+escapeHtml(v547CoachPraise(s.result,won,draw))+'</span></p></section>'+
@@ -3378,6 +3378,8 @@ function v559OpenOnline(){
  const type=variant==='simul'&&elem('v559MatchType').value==='quick'?'private':elem('v559MatchType').value;
  const board=elem('v555Board').value;
  const query=new URLSearchParams({fromapp:'1',mode:variant,name,rated:rated?'1':'0',match:type,board:board==='nacht'||board==='metal'?'gold-metal':'classic'});
+ // Persist selected online settings for returning to this menu without choosing twice.
+ localStorage.setItem('schach1001_online_last_setup',JSON.stringify({variant,name,rated,type,board}));
  location.href='online.html?'+query.toString();
 }
 function v555Start(){
@@ -3385,7 +3387,7 @@ function v555Start(){
  const variant=elem('v558Variant')?.value||'standard';
  if(mode==='online'){v559OpenOnline();return;}
  if(variant!=='standard'){
-  elem('v555SetNote').textContent='Diese Variante benötigt eigene Zugregeln und ist offline noch nicht verfügbar. Bitte klassisches Schach, Blindschach oder Online wählen.';
+  elem('v555SetNote').textContent='Diese Variante benötigt eigene Zugregeln und ist offline noch nicht verfügbar. Bitte klassisches Schach oder Online wählen.';
   elem('v558Variant').focus();
   return;
  }
