@@ -39,6 +39,8 @@ jobs:
           python -m pip install -r online/requirements.txt pytest httpx
       - name: Verify variant rules, multiplayer and Glicko-2
         run: python -m pytest online/tests -q
+      - name: Test Android chess UI button wiring and engine safeguards
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
       - name: Check chess JavaScript syntax
         run: |
           node --check app/src/main/assets/www/analysis.js
