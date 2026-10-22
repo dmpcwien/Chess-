@@ -3375,12 +3375,38 @@ function v555SyncSetup(){
  document.querySelectorAll('#v555Setup [data-v555mode]').forEach(b=>b.classList.toggle('v555Selected',b.dataset.v555mode===v555CurrentMode));
 }
 function v555GoSetup(){if(clock.started&&!gameResult)updateClock();v555Phase='setup';v555OnPage('game')}
+function v561PersonLayout(){
+ const panel=elem('gameBoard')?.closest('.gameBoardPanel'),clocks=elem('gameClocks');
+ if(!panel||!clocks)return;
+ let strip=elem('v561Moves'),top=elem('v561TopPlayer'),bottom=elem('v561BottomPlayer'),nav=elem('v561PersonNav');
+ if(!strip){
+  strip=document.createElement('div');strip.id='v561Moves';strip.setAttribute('aria-label','Bisherige Züge');
+  top=document.createElement('div');top.id='v561TopPlayer';top.className='v561PersonPlayer';
+  bottom=document.createElement('div');bottom.id='v561BottomPlayer';bottom.className='v561PersonPlayer';
+  nav=document.createElement('nav');nav.id='v561PersonNav';
+  nav.innerHTML='<button type="button" id="v561Options">☷<small>Optionen</small></button><button type="button" id="v561Pause">Ⅱ<small>Pause</small></button><button type="button" id="v561Back">❮<small>Zurück</small></button><button type="button" id="v561Forward">❯<small>Vor</small></button>';
+  panel.prepend(strip,top);panel.append(bottom,nav);
+  elem('v561Options').onclick=()=>v555GoSetup();
+  elem('v561Pause').onclick=()=>{if(!clock.started){setNote('Die Uhr läuft noch nicht.');return}updateClock();clock.started=false;clock.lastAt=0;paintClock();elem('v561Pause').querySelector('small').textContent='Weiter';};
+  elem('v561Back').onclick=()=>changeReviewPly(-1);
+  elem('v561Forward').onclick=()=>changeReviewPly(1);
+ }
+ const free=setup.mode==='free';panel.classList.toggle('v561PersonMode',free);
+ if(!free){if(clocks.parentNode!==panel)panel.insertBefore(clocks,elem('gameBoard').closest('.gameBoardFrame'));return}
+ top.replaceChildren();bottom.replaceChildren();
+ const topSide=flip?'w':'b',bottomSide=flip?'b':'w';
+ for(const [node,side] of [[top,topSide],[bottom,bottomSide]]){
+  const label=document.createElement('strong');label.textContent=side==='w'?'○ Weiß':'● Schwarz';
+  const clockNode=elem(side==='w'?'gameClockW':'gameClockB');node.append(label,clockNode);
+ }
+ strip.textContent=record.slice(-18).map((m,i)=>m.san).join('  ·  ')||'Partie beginnen';
+}
 function v555EnterPlay(){
  v555Phase='play';document.body.dataset.v555Side=setup.mode==='free'?'w':setup.side;
  elem('gameClockW').querySelector('span').textContent=setup.mode==='free'?'○ Weiß':(setup.side==='w'?'○ Du · Weiß':'○ Gegner · Weiß');
  elem('gameClockB').querySelector('span').textContent=setup.mode==='free'?'● Schwarz':(setup.side==='b'?'● Du · Schwarz':'● Gegner · Schwarz');
  if(clock.started&&!gameResult)clock.lastAt=Date.now();
- v555OnPage('game');boardRenderKey='';render();
+ v555OnPage('game');boardRenderKey='';render();v561PersonLayout();
 }
 function v559OpenOnline(){
  const variant=elem('v558Variant')?.value||'standard';
