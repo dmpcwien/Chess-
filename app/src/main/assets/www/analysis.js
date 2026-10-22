@@ -56,7 +56,7 @@ function think(p,level,analysis=false){const all=legal(p);if(!all.length)return 
  // 400–1800: einfacher lokaler Trainingsgegner. Ab 2000 kommt echte Stockfish 19 Lite zum Einsatz.
  const l=Math.max(1,Math.min(9,Math.round(level)));
  const depth=analysis?2:[1,1,1,2,2,2,2,3,3][l-1];
- const nodeLimit=analysis?6000:[150,300,650,1200,2500,3600,6200,10000,18000][l-1];
+ const nodeLimit=analysis?3500:[100,180,350,700,1200,1800,3000,4500,7000][l-1];
  searchedNodes=0;const ranked=[];
  for(const m of ordered(p,all)){const value=-search(move(p,m),depth-1,-31000,31000,nodeLimit);ranked.push({m,value});if(searchedNodes>nodeLimit&&ranked.length>=6)break;}
  ranked.sort((a,b)=>b.value-a.value);const top=ranked[0];if(analysis||l===9)return {m:top.m,value:top.value,depth};
@@ -409,15 +409,15 @@ function v532EnginePlan(elo,remainingMs){
  const rating=Math.max(400,Math.min(2800,Number(elo)||1000));
  // Bei >=2000 immer echte Stockfish Engine, keine kosmetische Elo-Erhöhung.
  if(rating<2000)return null;
- const depth=rating>=2800?22:rating>=2600?21:rating>=2400?19:rating>=2200?17:15;
- let movetime=rating>=2800?10000:rating>=2600?6500:rating>=2400?3500:rating>=2200?2200:1200;
+ const depth=rating>=2800?18:rating>=2600?17:rating>=2400?16:rating>=2200?15:13;
+ let movetime=rating>=2800?3200:rating>=2600?2500:rating>=2400?1800:rating>=2200?1200:700;
  // Die Engine darf bei kurzen Zeitkontrollen nicht blind 10 Sekunden verbrauchen.
  if(Number.isFinite(remainingMs)&&remainingMs>0)movetime=Math.min(movetime,Math.max(250,Math.floor(remainingMs/18)));
  return {engineElo:rating,depth,movetime,skill:20};
 }
 async function scheduleComputer(){
  if(busy||outcome(pos)||gameResult||isTraining())return;
- busy=true;const t=++token;render();await new Promise(resolve=>setTimeout(resolve,230));
+ busy=true;const t=++token;render();await new Promise(resolve=>setTimeout(resolve,70));
  if(t!==token){busy=false;render();return}
  if(isTimed())updateClock();if(gameResult){busy=false;return}
  let chosen=null,engineUsed='offline';
