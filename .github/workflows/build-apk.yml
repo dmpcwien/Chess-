@@ -104,7 +104,8 @@ jobs:
             echo "CHESS_SIGNING_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
             echo "Release signing enabled."
           else
-            echo "No persistent signing key configured. Debug APK only; do not uninstall the existing app."
+            echo "::error::Original-Release-Signierschlüssel fehlt. Kein updatefähiger Build möglich." >&2
+            exit 1
           fi
       - name: APK bauen
         shell: bash
@@ -126,7 +127,8 @@ jobs:
           set -euo pipefail
           APK=app/build/outputs/apk/online/Schach-1001-Pro-Online.apk
           test -s "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name=\x27at.schach1001.pro8\x27"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 5
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "versionCode='630000'"
           sha256sum "$APK" > app/build/outputs/apk/online/SHA256SUMS.txt
