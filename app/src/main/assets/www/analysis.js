@@ -56,7 +56,7 @@ function think(p,level,analysis=false){const all=legal(p);if(!all.length)return 
  // 400–1800: einfacher lokaler Trainingsgegner. Ab 2000 kommt echte Stockfish 19 Lite zum Einsatz.
  const l=Math.max(1,Math.min(9,Math.round(level)));
  const depth=analysis?2:[1,1,1,2,2,2,2,3,3][l-1];
- const nodeLimit=analysis?3500:[100,180,350,700,1200,1800,3000,4500,7000][l-1];
+ const nodeLimit=analysis?6000:[150,300,650,1200,2500,3600,6200,10000,18000][l-1];
  searchedNodes=0;const ranked=[];
  for(const m of ordered(p,all)){const value=-search(move(p,m),depth-1,-31000,31000,nodeLimit);ranked.push({m,value});if(searchedNodes>nodeLimit&&ranked.length>=6)break;}
  ranked.sort((a,b)=>b.value-a.value);const top=ranked[0];if(analysis||l===9)return {m:top.m,value:top.value,depth};
@@ -181,7 +181,7 @@ restore();
 // V5.54: Eine laufende Altpartie mit weniger als zwei Halbzügen darf
 // nicht bereits herunterzählen. Für ältere abgeschlossene Partien werden
 // keine gespeicherten Uhren verändert.
-if(!gameResult&&record.length===0){clock=newClock();}
+if(!gameResult&&record.length<2){clock=newClock();}
 // Diese Einstellung ist absichtlich bei Erstinstallation AUS.
 setup.showBestMove=setup.showBestMove===true;
 setup.coachEnabled=setup.coachEnabled!==false;
@@ -217,7 +217,7 @@ function updateClock(){
  clock[side]=Math.max(0,clock[side]-elapsed);clock.lastAt=now;
  if(clock[side]<=0){clock.finished=side;gameResult=(side===W?'Schwarz':'Weiß')+' gewinnt auf Zeit';token++;busy=false;persist();archiveGame();setNote(gameResult,true);render();}
 }
-function fmtTime(ms){ms=Math.max(0,Math.ceil(ms));if(ms>=86400000)return Math.ceil(ms/86400000)+' T';if(ms>=3600000){const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);return h+':'+String(m).padStart(2,'0')+':00';}const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);if(ms<60000)return m+':'+String(s).padStart(2,'0')+'.'+Math.floor((ms%1000)/100);return m+':'+String(s).padStart(2,'0');}
+function fmtTime(ms){ms=Math.max(0,Math.ceil(ms));if(ms>=86400000)return Math.ceil(ms/86400000)+' T';if(ms>=3600000){const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);return h+':'+String(m).padStart(2,'0')+':00';}const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);if(ms<20000)return m+':'+String(s).padStart(2,'0')+'.'+Math.floor((ms%1000)/100);return m+':'+String(s).padStart(2,'0');}
 function paintClock(){let white=elem('gameClockW'),black=elem('gameClockB');if(!white||!black)return;
  const hide=!isTimed();elem('gameClocks').hidden=hide;
  for(const side of [W,B]){let node=elem(side===W?'gameClockW':'gameClockB');node.querySelector('strong').textContent=hide?'–':fmtTime(clock[side]);node.classList.toggle('clockRunning',!hide&&clock.started&&!clock.finished&&!gameResult&&clock.active===side);node.classList.toggle('clockExpired',!!clock.finished&&clock.finished===side);}
@@ -257,8 +257,7 @@ function render(){
  if(planBadge){planBadge.hidden=!premovePlan.length;planBadge.textContent=premovePlan.length?'VIRTUELLE STELLUNG · '+premovePlan.length+' geplante Züge · Antworten des Computers sind nicht vorhersehbar':'';}
  const shownLast=inReview?reviewPly:record.length;
  const last=shownLast?record[shownLast-1]:null,options=inReview?[]:legal(pos);
- const blindLevel=Number(window.schachOfflineBlindLevel)||0;
- const visualKey=[toFen(shownPos),picked,flip,setup.side,blindLevel,reviewPly??'live',
+ const visualKey=[toFen(shownPos),picked,flip,setup.side,reviewPly??'live',
     premovePlan.map(x=>x.f+'-'+x.t).join(','),window.SchachLastMove?.enabled()?'lastOn':'lastOff',last?.f??'',last?.t??'',
     bestVisible()&&suggestedMove?.fen===toFen(pos)?(suggestedMove.f+'-'+suggestedMove.t):'nohint',v517Prefs.legalDots?'dots':'nodots'].join('|');
  if(boardRenderKey!==visualKey){
@@ -267,19 +266,14 @@ function render(){
  for(let i=0;i<64;i++){
  let idx0=arr[i],pc=shownPos.board[idx0],box=document.createElement('div');box.className='gameSq '+((Math.floor(idx0/8)+idx0%8)%2===0?'light':'dark');box.dataset.i=idx0;
  if(idx0===picked)box.classList.add('picked');
- if(shownPos.board[idx0]===(shownPos.turn===W?'K':'k')&&inCheck(shownPos,shownPos.turn))box.classList.add('v514CheckKing');if(premovePlan.some(m=>m.f===idx0))box.classList.add('queuedFrom');if(premovePlan.some(m=>m.t===idx0))box.classList.add('queuedTo');if(!blindLevel&&last&&window.SchachLastMove?.enabled()){if(last.f===idx0)box.classList.add('lastMoveFrom');if(last.t===idx0)box.classList.add('lastMoveTo');}if(!blindLevel&&!inReview&&bestVisible()&&suggestedMove&&suggestedMove.fen===toFen(pos)){if(idx0===suggestedMove.f)box.classList.add('bestFrom');if(idx0===suggestedMove.t)box.classList.add('bestTo')}
- if(!blindLevel&&v517Prefs.legalDots&&!inReview&&picked>=0&&!canQueuePremove()&&options.some(m=>m.f===picked&&m.t===idx0)){let dot=document.createElement('span');dot.className=pc?'targetRing':'targetDot';box.appendChild(dot)}
- if(pc&&blindLevel!==5){
-  const type=pc.toLowerCase();
-  const visible=blindLevel===0||(blindLevel===1&&!['n','b'].includes(type))||(blindLevel===2&&['p','q','k'].includes(type))||(blindLevel===3&&type==='p');
-  if(visible){let image=document.createElement('img');image.src='./theme_pieces/'+imgMap[pc];image.alt=(isW(pc)?'Weißer ':'Schwarzer ')+nm[pc.toUpperCase()];image.draggable=false;image.className='gamePiece';box.appendChild(image)}
-  else if(blindLevel===4){let disk=document.createElement('span');disk.className='vBlindDisk';disk.style.cssText='display:block;width:67%;height:67%;border-radius:50%;background:'+(isW(pc)?'#e7e7e2':'#292d32')+';border:2px solid '+(isW(pc)?'#92989a':'#9fa5aa')+';box-shadow:0 2px 5px #0005';disk.setAttribute('aria-label',isW(pc)?'Weiße Figur':'Schwarze Figur');box.appendChild(disk)}
- }
+ if(shownPos.board[idx0]===(shownPos.turn===W?'K':'k')&&inCheck(shownPos,shownPos.turn))box.classList.add('v514CheckKing');if(premovePlan.some(m=>m.f===idx0))box.classList.add('queuedFrom');if(premovePlan.some(m=>m.t===idx0))box.classList.add('queuedTo');if(last&&window.SchachLastMove?.enabled()){if(last.f===idx0)box.classList.add('lastMoveFrom');if(last.t===idx0)box.classList.add('lastMoveTo');}if(!inReview&&bestVisible()&&suggestedMove&&suggestedMove.fen===toFen(pos)){if(idx0===suggestedMove.f)box.classList.add('bestFrom');if(idx0===suggestedMove.t)box.classList.add('bestTo')}
+ if(v517Prefs.legalDots&&!inReview&&picked>=0&&!canQueuePremove()&&options.some(m=>m.f===picked&&m.t===idx0)){let dot=document.createElement('span');dot.className=pc?'targetRing':'targetDot';box.appendChild(dot)}
+ if(pc){let image=document.createElement('img');image.src='./theme_pieces/'+imgMap[pc];image.alt=(isW(pc)?'Weißer ':'Schwarzer ')+nm[pc.toUpperCase()];image.draggable=false;image.className='gamePiece';box.appendChild(image)}
  if(i>=56){let c=document.createElement('span');c.className='gameCoord fileCoord';c.textContent=files[idx0%8];box.appendChild(c)}
  if(i%8===0){let c=document.createElement('span');c.className='gameCoord rankCoord';c.textContent=8-Math.floor(idx0/8);box.appendChild(c)}
  box.onclick=()=>{if(inReview||Date.now()<clickSuppress)return;selectOrMove(idx0)};board.appendChild(box);
  }
- if(!blindLevel&&!inReview&&bestVisible()&&suggestedMove&&suggestedMove.fen===toFen(pos)){
+ if(!inReview&&bestVisible()&&suggestedMove&&suggestedMove.fen===toFen(pos)){
   const from=arr.indexOf(suggestedMove.f),to=arr.indexOf(suggestedMove.t);
   if(from>=0&&to>=0){
    const ax=(from%8+0.5)*100,ay=(Math.floor(from/8)+0.5)*100,bx=(to%8+0.5)*100,by=(Math.floor(to/8)+0.5)*100;
@@ -290,8 +284,7 @@ function render(){
  }
  } // End visual board update: layout and animated pieces survive status-only renders.
  const msg=gameResult||legalDrawState()||outcome(pos);elem('gameTurn').textContent=inReview?('Rückblick · '+(reviewPly===0?'Ausgangsstellung':'Zug '+reviewPly+'/'+record.length)):msg||((pos.turn===W?'Weiß':'Schwarz')+' am Zug'+(inCheck(pos,pos.turn)?' · Schach!':''));
- const v560Info=elem('v560PlayerInfo');if(v560Info){const level=Number(window.schachOfflineBlindLevel)||0;const gameType=level?'Blindschach '+level:setup.mode==='opening'?'Training':setup.mode==='analysis'?'Analyse':'Klassisch';const points=Math.round(Number(summaryStore.trainingRating)||1000);v560Info.textContent=(setup.mode==='computer'?'🤖 '+setup.elo+' · ':'👥 ')+gameType+' · '+points+' P.';v560Info.title='Spieltyp: '+gameType+' · '+(setup.mode==='computer'?'Computerstärke: '+setup.elo+' · ':'')+'Lokale Trainingspunkte: '+points+' (keine Online-Elo)';}
- elem('gameThinking').textContent=busy?'Computer denkt …':(setup.mode==='computer'?(setup.elo>=2000||setup.engine==='stockfish'?'Stockfish 19 Lite · Profil '+setup.elo:'Offline-Spielgegner · Stärkeprofil '+setup.elo):setup.mode==='opening'?'Eröffnungstraining':'Analyse: Stockfish 19 Lite');elem('gameUndo').disabled=!record.length;
+ elem('gameThinking').textContent=busy?'Computer denkt …':(setup.mode==='computer'?(setup.elo>=2000||setup.engine==='stockfish'?'Stockfish 19 Lite · Profil '+setup.elo:'Offline-Spielgegner · Stärkeprofil '+setup.elo):setup.mode==='opening'?'Eröffnungstraining':'Analyse: Stockfish 19 Lite');elem('gameUndo').disabled=!record.length||busy;
  v533OpeningHintPaint();renderPlyHistory();v514UpdateGameSummary();const sfValue=sfPositionScore&&sfPositionScore.fen===toFen(pos)?sfPositionScore.whiteCp:null;updateSideEvaluation(sfValue);paintClock();
 }
 function setReviewPly(ply){
@@ -379,7 +372,8 @@ function clockAfterMove(movingSide){
  // record wird erst NACH dieser Funktion um den aktuellen Zug ergänzt.
  // Zug 1 (Weiß): beide Uhren bleiben stehen. Zug 2 (Schwarz): erst danach
  // läuft Weiß. Kein Zeitabzug und kein Inkrement für diese zwei Züge.
- if(record.length<1){clock.started=true;clock.active=enemy(movingSide);clock.lastAt=Date.now();return;}
+ if(record.length<1){clock.active=null;clock.started=false;clock.lastAt=0;return;}
+ if(record.length===1){clock.started=true;clock.active=W;clock.lastAt=Date.now();return;}
  if(!clock.started){clock.started=true;clock.active=movingSide;clock.lastAt=Date.now()}
  updateClock();if(gameResult)return;
  const t=chosenTime();if(t.type==='daily'){clock[movingSide]=t.ms;clock[enemy(movingSide)]=t.ms;}
@@ -399,9 +393,8 @@ function playMove(m,human,fromGhost=null){
  const fromRect=fromGhost||((original&&original.getBoundingClientRect())||null),before=pos,all=legal(before),san=notation(before,m,all),oldClock=saveClock();
  suggestedMove=null;analysisSequence++;pos=move(before,m);clockAfterMove(before.turn);if(gameResult){pos=before;return;}
  record.push({f:m.f,t:m.t,san,uci:sq(m.f)+sq(m.t)+(m.promo||''),before:toFen(before),after:toFen(pos),actor:human?'Mensch':'Computer',beforeClock:oldClock});
- if(setup.mode==='free'&&elem('v561Moves')){const strip=elem('v561Moves');strip.textContent=record.slice(-18).map((entry,i)=>entry.san).join('  ·  ');strip.scrollLeft=strip.scrollWidth;}
  v57HintLevel=0;if(elem('v57GameHintText'))elem('v57GameHintText').textContent='Tippe auf Hinweis für drei aufeinanderfolgende Hilfestufen.';if(v57prefs.vibrate&&navigator.vibrate)navigator.vibrate(15);
- picked=-1;token++;if(setup.mode==='free'){flip=pos.turn==='b';}persist();render();if(setup.mode==='free')v561PersonLayout();v517AfterMove(m,human);if(fromRect)floatPiece({t:m.t,pc:before.board[m.f],sourceRect:fromRect});
+ picked=-1;token++;persist();render();v517AfterMove(m,human);if(fromRect)floatPiece({t:m.t,pc:before.board[m.f],sourceRect:fromRect});
  let end=outcome(pos);if(end){gameResult=end;if(isTimed())clock.active=null;persist();archiveGame();render()}
  const forced=legalDrawState();if(forced&&!gameResult){gameResult=forced;clock.active=null;persist();archiveGame();render()}
  if(isTraining()&&!gameResult){if(record.length>=opening().uci.length){completeOpening()}else {trainingMessage();if(pos.turn!==opening().side)openingAuto()}}
@@ -416,27 +409,20 @@ function v532EnginePlan(elo,remainingMs){
  const rating=Math.max(400,Math.min(2800,Number(elo)||1000));
  // Bei >=2000 immer echte Stockfish Engine, keine kosmetische Elo-Erhöhung.
  if(rating<2000)return null;
- const depth=rating>=2800?18:rating>=2600?17:rating>=2400?16:rating>=2200?15:13;
- let movetime=rating>=2800?3200:rating>=2600?2500:rating>=2400?1800:rating>=2200?1200:700;
+ const depth=rating>=2800?22:rating>=2600?21:rating>=2400?19:rating>=2200?17:15;
+ let movetime=rating>=2800?10000:rating>=2600?6500:rating>=2400?3500:rating>=2200?2200:1200;
  // Die Engine darf bei kurzen Zeitkontrollen nicht blind 10 Sekunden verbrauchen.
  if(Number.isFinite(remainingMs)&&remainingMs>0)movetime=Math.min(movetime,Math.max(250,Math.floor(remainingMs/18)));
  return {engineElo:rating,depth,movetime,skill:20};
 }
-function retryComputerMove(){
- if(setup.mode!=='computer'){setNote('Computerzug ist nur im Modus gegen Stockfish verfügbar.',true);return;}
- if(gameResult||outcome(pos)){setNote('Die Partie ist bereits beendet.',true);return;}
- if(pos.turn===setup.side){setNote('Du bist am Zug.',true);return;}
- if(busy){setNote('Stockfish berechnet bereits einen Zug. Bitte kurz warten.');return;}
- scheduleComputer();
-}
 async function scheduleComputer(){
- if(busy||outcome(pos)||gameResult||isTraining()||setup.mode!=='computer'||pos.turn===setup.side)return;
- busy=true;const t=++token;render();await new Promise(resolve=>setTimeout(resolve,70));
+ if(busy||outcome(pos)||gameResult||isTraining())return;
+ busy=true;const t=++token;render();await new Promise(resolve=>setTimeout(resolve,230));
  if(t!==token){busy=false;render();return}
  if(isTimed())updateClock();if(gameResult){busy=false;return}
- let chosen=null,engineUsed='offline',engineFailure='';
+ let chosen=null,engineUsed='offline';
  const plan=v532EnginePlan(setup.elo,isTimed()?clock[pos.turn]:Infinity);
- const useStockfish=true; // All computer levels require a real Stockfish move.
+ const useStockfish=!!plan||setup.engine==='stockfish';
  if(useStockfish&&typeof window.analyzeFen==='function'){
   try{
    setNote(plan?'Stockfish spielt mit Stärkeprofil '+plan.engineElo+' (keine offiziell gemessene Elo) …':'Stockfish wird abgefragt …');
@@ -445,30 +431,29 @@ async function scheduleComputer(){
    const depth=plan?plan.depth:Math.max(5,Math.min(15,7+Math.round(level/3)));
    const sf=await window.analyzeFen(toFen(pos),depth,1,options);
    if(t===token&&sf&&sf.bestmove){chosen=legal(pos).find(m=>moveUci(m)===sf.bestmove);if(chosen)engineUsed='stockfish'}
-  }catch(e){engineFailure=String(e?.message||e||'Unbekannter Engine-Fehler');if(t===token)setNote('Stockfish-Fehler: '+engineFailure+' · Kein Ersatzgegner.',true)}
+  }catch(e){if(t===token)setNote('Stockfish konnte den Zug nicht berechnen. '+(e?.message||'')+' Einfacher Notfallgegner übernimmt.',true)}
  }
  if(t!==token){busy=false;render();return}
- if(!chosen){
-  busy=false;render();
-  setNote('Schwarz zieht nicht: '+(engineFailure||'Stockfish lieferte keinen legalen Zug oder konnte nicht geladen werden.')+' · Tippe auf „Computerzug erneut“.',true);
-  return;
- }
+ if(!chosen&&plan){busy=false;render();setNote('Stockfish konnte keinen starken Zug liefern. Die Stufe '+setup.elo+' wird nicht durch einen schwachen Notfallgegner ersetzt. Bitte später erneut versuchen oder niedrigere Stärke wählen.',true);return}
+ if(!chosen){const level=Math.max(1,Math.min(9,Math.round((Math.min(setup.elo,2000)-400)/200)+1)),item=think(pos,level);chosen=item&&item.m}
+ // Ab 2000 ELO niemals den schwächeren Stile-Umweg verwenden.
+ if(chosen&&engineUsed==='offline'&&!plan&&v58prefs.style!=='ausgeglichen')chosen=v58StyledMove(pos,chosen);
  busy=false;if(t!==token||gameResult)return;
  if(chosen){playMove(chosen,false);if(engineUsed==='stockfish')setNote('Stockfish hat '+record.at(-1).san+' gespielt.')}else render();
 }
 
 function gameNew(){
  v551ApplyAdaptiveOpponent();reviewPly=null;premove=null;premovePlan=[];token++;busy=false;suggestedMove=null;analysisSequence++;clearFlights();pos=fromFen(startFen);record=[];picked=-1;gameResult=null;clock=newClock();openingCompleted=false;sessionId='s'+Date.now()+'-'+Math.floor(Math.random()*1e6);
- // Die Uhr beginnt nach dem ersten weißen Zug; Schwarz wird dann aktiv.
+ // V5.54: Uhrstart erst nach dem ersten weißen UND schwarzen Zug.
  v57HintLevel=0;v57VoiceLast='';v57StopSpeech();
- elem('gameAnalysis').textContent=isTraining()?'Trainiere eine Eröffnung ohne Uhr.':'Neue Partie. Die Uhr beginnt nach dem ersten weißen Zug.';
+ elem('gameAnalysis').textContent=isTraining()?'Trainiere eine Eröffnung ohne Uhr.':'Neue Partie. Die Uhr beginnt erst nach dem ersten weißen und schwarzen Zug.';
  elem('gameTopAnalysis').textContent=bestVisible()?'Stockfish berechnet den nächsten Zug.':'Stockfish bewertet die Stellung. Bester Zug ist ausgeschaltet.';
  elem('gameBestReadout').textContent='Tippe auf „Besten Zug prüfen“, um den nächsten Zug zu sehen.';refreshCoach();
  setNote('Neue Partie gestartet. Ziehe eine Figur oder tippe auf Start- und Zielfeld.');persist();render();if(setup.mode==='computer'&&setup.side===B)scheduleComputer();if(isTraining()){trainingMessage();if(pos.turn!==opening().side)openingAuto()}renderProfile();
 }
-function undo(){reviewPly=null;premove=null;premovePlan=[];v57StopSpeech();token++;busy=false;suggestedMove=null;analysisSequence++;clearFlights();let count=(setup.mode==='computer'&&record.length>=2&&pos.turn===setup.side)?2:1;
+function undo(){reviewPly=null;premove=null;premovePlan=[];v57StopSpeech();token++;busy=false;suggestedMove=null;analysisSequence++;clearFlights();let count=(setup.mode==='computer'&&record.length>=2)?2:1;
  for(let j=0;j<count&&record.length;j++){let z=record.pop();pos=fromFen(z.before);clock=z.beforeClock||newClock();}
- if(!record.length)clock=newClock();else clock.lastAt=Date.now();gameResult=null;clock.finished=null;openingCompleted=false;picked=-1;setNote('Zug zurückgenommen.');elem('gameAnalysis').textContent='Analyse wird nach dem nächsten Zug aktualisiert.';persist();render();if(setup.mode==='computer'&&pos.turn!==setup.side)scheduleComputer();if(isTraining()){trainingMessage();if(pos.turn!==opening().side)openingAuto()}}
+ if(record.length<2)clock=newClock();else clock.lastAt=Date.now();gameResult=null;clock.finished=null;openingCompleted=false;picked=-1;setNote('Zug zurückgenommen.');elem('gameAnalysis').textContent='Analyse wird nach dem nächsten Zug aktualisiert.';persist();render();if(setup.mode==='computer'&&pos.turn!==setup.side)scheduleComputer();if(isTraining()){trainingMessage();if(pos.turn!==opening().side)openingAuto()}}
 async function analyze(){
  const available=legal(pos),end=outcome(pos)||gameResult;
  const near=elem('gameTopAnalysis'),coach=elem('gameBestReadout'),panel=elem('gameAnalysis');
@@ -718,7 +703,7 @@ function v547ShowEnd(){
  if(!v547Current)return;v547Open();v547Screen='end';elem('v547Title').textContent='Partie beendet';
  const s=v547Current,score=s.score,reason=v547ResultCause(s.result),delta=s.pointDelta;
  const draw=s.result.startsWith('Remis'),won=v547Winner(s.result,s.side,s.archive?.mode||setup.mode),headline=draw?'Remis!':won?'Du hast gewonnen!':'Du hast verloren.';
- const rating=Number.isFinite(s.points)&&s.points&&s.archive?.mode==='computer'?'<div class="v547Training"><strong>♜ '+s.points+' Trainingspunkte</strong><span>Vorher: '+(s.points-delta)+' · Änderung: '+(delta>0?'+':'')+delta+' · Jetzt: '+s.points+'</span><small>Lokales Trainingsrating – keine offizielle Elo- oder Online-Glicko-2-Wertung</small></div>':'';
+ const rating=Number.isFinite(s.points)&&s.points?'<div class="v547Training"><strong>♜ '+s.points+'</strong><span>Trainingspunkte'+(delta>0?' · +'+delta:delta<0?' · '+delta:'')+'</span><small>Lokales Training, kein offizielles Elo</small></div>':'';
  const cached=v547ReadCached(),done=!!(s.items?.length===s.moves.length&&s.moves.length)||(cached?.items?.length===s.moves.length&&s.moves.length>0);
  elem('v547Content').innerHTML='<section class="v547Victory"><p class="v547Kicker">SCHACH 1001+ PRO</p><h1>'+escapeHtml(headline)+'</h1><p class="v547Reason">'+escapeHtml(reason)+'</p><div class="v547Versus"><div><div class="v547BadgePiece">♟</div><strong>Du</strong></div><span class="v547Vs">'+escapeHtml(score)+'</span><div><div class="v547BadgePiece v547Opp">♟</div><strong>'+escapeHtml(s.opponent)+'</strong></div></div><div class="v547Twins"><button data-v547="rematch">↻ Revanche</button><button data-v547="new">♟ Neue Partie</button></div></section>'+rating+
  '<section class="v547Coach"><div class="v547Avatar" aria-hidden="true">♟</div><p><strong>Dein Schach-Coach</strong><span>'+escapeHtml(v547CoachPraise(s.result,won,draw))+'</span></p></section>'+
@@ -747,7 +732,7 @@ function v547OpenReview(){
  const who=s.side==='w'?'Weiß':'Schwarz',opp=s.side==='w'?'Schwarz':'Weiß';
  elem('v547Content').innerHTML='<div class="v547ReviewHero"><div class="v547Coach"><div class="v547Avatar">♟</div><p><strong>Dein Schach-Coach</strong><span>'+escapeHtml(complete?'Die Stockfish-Auswertung ist fertig. Wähle „Züge durchgehen“, um deine Entscheidungen am Brett zu verstehen.':'Hier siehst du deine Partie. Starte die Auswertung, damit Stockfish die Zugqualität tatsächlich berechnet.')+'</span></p></div>'+v547Graph(items)+'</div>'+ 
  '<div class="v547ReviewHead"><b>Auswertung der Partie</b><small>'+s.moves.length+' Halbzüge · '+escapeHtml(s.score)+'</small></div><div class="v547Players"><div><small>Weiß '+(who==='Weiß'?'(Du)':'')+'</small><strong>'+(aw===null?'–':aw.toFixed(0)+' %')+'</strong></div><div><small>Schwarz '+(who==='Schwarz'?'(Du)':'')+'</small><strong>'+(ab===null?'–':ab.toFixed(0)+' %')+'</strong></div></div><p class="v547Disclaimer">Genauigkeit = eigene Stockfish-Schätzung, nicht die offizielle Chess.com-Berechnung. „Brillant“, „Stark“ und „Buchzug“ werden nicht ohne eigene Kriterien behauptet.</p><div class="v547Categories"><div class="v547Row v547CategoryHead"><span>Kategorie</span><b>Weiß</b><span></span><b>Schwarz</b></div>'+grid+'</div>'+
- '<section class="v560ReviewPerformance"><h3>Partieleistung</h3><div class="v560ReviewPair"><div><small>Weiß</small><strong>'+(complete&&aw!==null?aw.toFixed(0)+' %':'–')+'</strong></div><div><small>Schwarz</small><strong>'+(complete&&ab!==null?ab.toFixed(0)+' %':'–')+'</strong></div></div><p class="v547Disclaimer">Genauigkeit ist ein Stockfish-basierter Schätzwert. Eine einzelne Partie erhält keine erfundene Elo-Wertung.</p><h3>Stärken und Schwächen</h3>'+['Eröffnung','Mittelspiel','Endspiel'].map((name,phase)=>{const total=items.length,from=phase===0?0:phase===1?Math.min(20,total):Math.max(Math.min(20,total),total-Math.floor(total/3)),to=phase===0?Math.min(20,total):phase===1?Math.max(Math.min(20,total),total-Math.floor(total/3)):total;const part=items.filter(x=>x.side===s.side&&x.i>=from&&x.i<to);const avg=part.length?part.reduce((n,x)=>n+x.loss,0)/part.length:null;return '<div class="v560Phase"><span>'+name+'</span><b>'+(complete&&avg!==null?(avg<=35?'✓ Sehr gut':avg<=85?'✓ Gut':avg<=170?'?! Ausbaufähig':'⚠ Üben'):'–')+'</b></div>'}).join('')+'<p class="v547Disclaimer">Spielphasen nach Zugnummer; taktische Motive werden hier nicht automatisch behauptet.</p></section>'+'<div id="v547Progress" class="v547Progress" role="status" aria-live="polite">'+(complete?'Analyse abgeschlossen':s.reviewing?'Stockfish arbeitet …':'Noch nicht analysiert')+'</div><button class="v547Primary" data-v547="'+(complete?'moves':'analyze')+'">'+(complete?'★ Review am großen Brett':'★ Auswertung mit Stockfish starten')+'</button><div class="v547SmallActions"><button data-v547="moves">Zum Analysebrett</button><button data-v547="back">Zurück zum Ergebnis</button></div>';
+ '<div id="v547Progress" class="v547Progress" role="status" aria-live="polite">'+(complete?'Analyse abgeschlossen':s.reviewing?'Stockfish arbeitet …':'Noch nicht analysiert')+'</div><button class="v547Primary" data-v547="'+(complete?'moves':'analyze')+'">'+(complete?'★ Review am großen Brett':'★ Auswertung mit Stockfish starten')+'</button><div class="v547SmallActions"><button data-v547="moves">Zum Analysebrett</button><button data-v547="back">Zurück zum Ergebnis</button></div>';
  elem('v547Content').scrollTop=0;
 }
 async function v547RunReview(){
@@ -813,12 +798,7 @@ function claimDraw(){if(gameResult)return;const reasons=claimableDraw();if(!reas
  gameResult='Remis: '+reasons.join(', ');token++;clock.active=null;persist();archiveGame();render();setNote(gameResult)}
 function offerDraw(){if(gameResult||isTraining()||setup.mode==='analysis')return;
  if(setup.mode==='free'){if(confirm('Nimmt der Gegenspieler das Remisangebot an?')){gameResult='Remis durch Vereinbarung';clock.active=null;archiveGame();persist();render()}}
- else if(setup.mode==='computer'){
-  const reasons=claimableDraw();
-  if(reasons.length){claimDraw();return}
-  if(record.length<12){setNote('Stockfish nimmt so früh kein Remisangebot an. Spiele weiter oder nutze „Remis beanspruchen“, sobald eine Regel erfüllt ist.');return}
-  setNote('Remisangebot abgelehnt: Stockfish hat keine Remisannahme-Schnittstelle. Die Partie läuft weiter.'); 
- }}
+ else setNote('Gegen den Computer: Ein Remisangebot ist hier nicht implementiert. Nutze „Remis beanspruchen“, wenn eine Regel erfüllt ist.');}
 function toPGN(){let outcomeVal=resultCode(gameResult);let header=`[Event "Schach 1001+ Pro"]\n[Site "Android / Offline"]\n[Date "${new Date().toISOString().slice(0,10).replaceAll('-','.')}"]\n[White "${setup.mode==='computer'&&setup.side==='b'?'Computer':'Spieler Weiß'}"]\n[Black "${setup.mode==='computer'&&setup.side==='w'?'Computer':'Spieler Schwarz'}"]\n[Result "${outcomeVal}"]\n\n`;
  let body='';for(let i=0;i<record.length;i++){if(i%2===0)body+=(Math.floor(i/2)+1)+'. ';body+=record[i].san+' ';}
  return header+body+outcomeVal+'\n';}
@@ -2199,7 +2179,7 @@ function init(){
  <div class="timeGroup"><h4>⚙ Eigene Zeit</h4><button type="button" class="timePreset customPreset" data-time="custom">Benutzerdefiniert</button>
  <div id="customTime" class="customTime" hidden><label>Startzeit <span>Minuten</span><input type="number" id="customMin" min="1" max="120" inputmode="numeric" value="10"></label><label>Bonus pro Zug <span>Sekunden</span><input type="number" id="customInc" min="0" max="60" inputmode="numeric" value="0"></label><button id="customApply" type="button" class="btn primary">Zeit übernehmen</button></div></div>
  <div class="timeSelected">Gewählt: <strong id="customLabel">10 Min.</strong><small>Eine geänderte Zeit startet eine neue Partie.</small></div></div></details>
- <div class="gameColumns"><section class="card gameBoardPanel"><div class="gameBoardMeta"><strong id="gameTurn">Weiß am Zug</strong><span id="v560PlayerInfo" aria-label="Gegner und Wertung" style="font-size:11px;white-space:nowrap;max-width:48%;overflow:hidden;text-overflow:ellipsis">🤖 Bot · 1000 · 1000 P.</span><span id="gameEval" class="gameEvalHeadline" aria-label="Stellungsbewertung">– (Stockfish)</span><span id="gameThinking">Analyse: Stockfish 19 Lite</span></div>
+ <div class="gameColumns"><section class="card gameBoardPanel"><div class="gameBoardMeta"><strong id="gameTurn">Weiß am Zug</strong><span id="gameEval" class="gameEvalHeadline" aria-label="Stellungsbewertung">– (Stockfish)</span><span id="gameThinking">Analyse: Stockfish 19 Lite</span></div>
  <div id="gameClocks" class="gameClocks"><div class="gameClock" id="gameClockB"><span>● Schwarz</span><strong>10:00</strong></div><div class="gameClock" id="gameClockW"><span>○ Weiß</span><strong>10:00</strong></div></div>
  <div id="gameCoachDock" class="gameCoachDock" aria-label="Schach-Coach während der Partie">
   <div class="gameCoachDockHead"><strong>🧠 Dein Coach</strong><button type="button" role="switch" aria-checked="true" aria-label="Coach einschalten oder ausschalten" id="gameCoachToggle" class="bestToggle on">● Coach: EIN</button></div>
@@ -2617,7 +2597,7 @@ function init(){
  elem('customApply').onclick=()=>{setup.customMin=Math.max(1,Math.min(120,Math.round(+elem('customMin').value||10)));setup.customInc=Math.max(0,Math.min(60,Math.round(+elem('customInc').value||0)));setup.time='custom';gameNew();elem('clockSettings').open=false};
  v555Init(goPage);
  bindDrag();render();refreshCoach();let saved='';try{saved=localStorage.getItem('schach1001_page')}catch(_){}show(saved==='training'?'training':saved==='game'?'game':saved==='stats'?'stats':saved==='puzzles'?'puzzles':'home');
- timerHandle=setInterval(()=>{if(!elem('gameContent').hidden&&v555Phase==='play'&&isTimed()){updateClock();paintClock()}},100);
+ timerHandle=setInterval(()=>{if(!elem('gameContent').hidden&&game.dataset.v526Page==='game'&&!document.body.classList.contains('v555Setup')&&isTimed()){updateClock();paintClock()}},100);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateClock();paintClock()}});
 }
 // Nur für eigene Tests, enthält keine Nutzerinformationen.
@@ -3368,62 +3348,26 @@ function v555SyncSetup(){
  elem('v555Time').closest('.v555SelectLine').hidden=online;
  document.querySelectorAll('#v555Setup [data-v555side]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v555side===v555SelectedSide)));
  const variant=elem('v558Variant')?.value||'standard';
- const onlyOnline=!online&&variant!=='standard'&&!/^blind[1-5]$/.test(variant);
+ const onlyOnline=false; // All local variants launch through variant-offline.html in V5.62
  elem('v555SetNote').textContent=online
  ?'Deine Einstellungen sind übernommen. Suche einen Gegner oder erstelle eine private Partie mit QR-Code bzw. Einladungslink. Rating nur mit ausdrücklicher Auswahl.'
- :onlyOnline?'Diese Sondervariante benötigt eigene Regeln und wird derzeit nur online unterstützt. Offline sind klassisches Schach und fünf Blindschach-Stufen verfügbar.'
+ :variant!=='standard'?'Diese Variante läuft vollständig offline. Gegen Bot, Coach und zwei Personen an einem Handy möglich; Analyse auf Variantenregeln abgestimmt.'
  :v555CurrentMode==='free'?'Zwei Personen spielen abwechselnd am selben Gerät.'
  :v555CurrentMode==='coach'?'Offline gegen Stockfish mit Trainer – ohne Internet.'
  :'Offline gegen Stockfish: wähle die Stärke und starte direkt auf dem lokalen Schachbrett.';
- const onlineShortcut=elem('v558OnlineMenu');if(onlineShortcut)onlineShortcut.hidden=true;
  const startBtn=elem('v555SetStart');
- startBtn.textContent=online?'🌐 Online-Partie öffnen':onlyOnline?'⚠ Sondervariante nur online':'▶ Offline-Partie starten';
+ startBtn.textContent=online?'🌐 Online-Partie öffnen':variant!=='standard'?'▶ Offline-Variante starten':'▶ Offline-Partie starten';
  startBtn.disabled=onlyOnline;
  const resume=elem('v555Resume');resume.classList.toggle('v555CanResume',record.length>0&&!gameResult);
  document.querySelectorAll('#v555Setup [data-v555mode]').forEach(b=>b.classList.toggle('v555Selected',b.dataset.v555mode===v555CurrentMode));
 }
 function v555GoSetup(){if(clock.started&&!gameResult)updateClock();v555Phase='setup';v555OnPage('game')}
-function v561PersonLayout(){
- const panel=elem('gameBoard')?.closest('.gameBoardPanel'),clocks=elem('gameClocks');
- if(!panel||!clocks)return;
- let strip=elem('v561Moves'),top=elem('v561TopPlayer'),bottom=elem('v561BottomPlayer'),nav=elem('v561PersonNav');
- if(!strip){
-  strip=document.createElement('div');strip.id='v561Moves';strip.setAttribute('aria-label','Bisherige Züge');
-  top=document.createElement('div');top.id='v561TopPlayer';top.className='v561PersonPlayer';
-  bottom=document.createElement('div');bottom.id='v561BottomPlayer';bottom.className='v561PersonPlayer';
-  nav=document.createElement('nav');nav.id='v561PersonNav';
-  nav.innerHTML='<button type="button" id="v561Options">☷<small>Optionen</small></button><button type="button" id="v561Pause">Ⅱ<small>Pause</small></button><button type="button" id="v561AddTime">◷<small>+15 Sek.</small></button><button type="button" id="v561Back">❮<small>Zurück</small></button><button type="button" id="v561Forward">❯<small>Vor</small></button>';
-  panel.prepend(strip,top);panel.append(bottom,nav);
-  elem('v561Options').onclick=()=>v555GoSetup();
-  elem('v561Pause').onclick=()=>{if(!clock.started){if(!clock.active||gameResult)return;clock.started=true;clock.lastAt=Date.now();elem('v561Pause').querySelector('small').textContent='Pause';paintClock();return}updateClock();clock.started=false;clock.lastAt=0;paintClock();elem('v561Pause').querySelector('small').textContent='Weiter';};
-  elem('v561AddTime').onclick=()=>{
-   if(setup.mode!=='free'||!isTimed()||gameResult)return;
-   updateClock();
-   if(gameResult)return;
-   const recipient=pos.turn===W?B:W;
-   clock[recipient]=Math.max(0,clock[recipient])+15000;
-   paintClock();persist();
-   setNote('15 Sekunden für '+(recipient===W?'Weiß':'Schwarz')+' hinzugefügt. Deine eigene Uhr bleibt unverändert.');
-  };
-  elem('v561Back').onclick=()=>changeReviewPly(-1);
-  elem('v561Forward').onclick=()=>changeReviewPly(1);
- }
- const free=setup.mode==='free';panel.classList.toggle('v561PersonMode',free);
- if(!free){if(clocks.parentNode!==panel)panel.insertBefore(clocks,elem('gameBoard').closest('.gameBoardFrame'));return}
- top.replaceChildren();bottom.replaceChildren();
- const topSide=flip?'w':'b',bottomSide=flip?'b':'w';
- for(const [node,side] of [[top,topSide],[bottom,bottomSide]]){
-  const label=document.createElement('strong');label.textContent=side==='w'?'○ Weiß':'● Schwarz';
-  const clockNode=elem(side==='w'?'gameClockW':'gameClockB');node.append(label,clockNode);
- }
- strip.textContent=record.slice(-18).map((m,i)=>m.san).join('  ·  ')||'Partie beginnen';
-}
 function v555EnterPlay(){
  v555Phase='play';document.body.dataset.v555Side=setup.mode==='free'?'w':setup.side;
  elem('gameClockW').querySelector('span').textContent=setup.mode==='free'?'○ Weiß':(setup.side==='w'?'○ Du · Weiß':'○ Gegner · Weiß');
  elem('gameClockB').querySelector('span').textContent=setup.mode==='free'?'● Schwarz':(setup.side==='b'?'● Du · Schwarz':'● Gegner · Schwarz');
  if(clock.started&&!gameResult)clock.lastAt=Date.now();
- v555OnPage('game');boardRenderKey='';render();v561PersonLayout();
+ v555OnPage('game');boardRenderKey='';render();
 }
 function v559OpenOnline(){
  const variant=elem('v558Variant')?.value||'standard';
@@ -3433,17 +3377,23 @@ function v559OpenOnline(){
  const type=variant==='simul'&&elem('v559MatchType').value==='quick'?'private':elem('v559MatchType').value;
  const board=elem('v555Board').value;
  const query=new URLSearchParams({fromapp:'1',mode:variant,name,rated:rated?'1':'0',match:type,board:board==='nacht'||board==='metal'?'gold-metal':'classic'});
- // Persist selected online settings for returning to this menu without choosing twice.
- localStorage.setItem('schach1001_online_last_setup',JSON.stringify({variant,name,rated,type,board}));
  location.href='online.html?'+query.toString();
 }
 function v555Start(){
  const mode=elem('v555Mode').value;
  const variant=elem('v558Variant')?.value||'standard';
  if(mode==='online'){v559OpenOnline();return;}
- if(variant!=='standard'&&!/^blind[1-5]$/.test(variant)){
-  elem('v555SetNote').textContent='Diese Variante benötigt eigene Zugregeln und ist offline noch nicht verfügbar. Bitte klassisches Schach oder Online wählen.';
-  elem('v558Variant').focus();
+ if(variant!=='standard'){
+  // v5.60: local variant rules, coaching and analysis; never jump to online.
+  const query=new URLSearchParams({mode:variant,enemy:mode==='free'?'free':mode==='coach'?'coach':'computer',
+    elo:String(Number(elem('v555Strength').value)||1000),
+    time:elem('v555Time').value,side:v555SelectedSide==='random'?(Math.random()<.5?'w':'b'):v555SelectedSide,
+    coach:mode==='coach'?'1':'0',board:elem('v555Board').value});
+  // Navigate only to the local, APK-bundled variant board. Never redirect to online.
+  const destination='variant-offline.html?'+query.toString();
+  const btn=elem('v555SetStart');
+  if(btn){btn.disabled=true;btn.textContent='♟ Offline-Partie wird geöffnet …';}
+  window.location.assign(destination);
   return;
  }
  setup.mode=mode==='free'?'free':'computer';setup.elo=Number(elem('v555Strength').value);
@@ -3452,15 +3402,14 @@ function v555Start(){
  flip=false;
  v553Prefs.pieces=elem('v555Pieces').value;v553Prefs.board=elem('v555Board').value;v553Save();v553ApplyLook();
  setCoachVisibility(mode==='coach');
- window.schachOfflineBlindLevel=/^blind[1-5]$/.test(variant)?Number(variant.slice(-1)):0;
- gameNew();if(setup.mode==='free')flip=false;v555EnterPlay();
+ gameNew();v555EnterPlay();
 }
 function v555Init(goPage){
  if(v555Inited)return;v555Inited=true;
  const modal=document.createElement('section');modal.id='v555Setup';modal.hidden=true;
- modal.innerHTML=`<div class="v555SetInner"><header class="v555SetHead"><button class="v555Back" id="v555Back" type="button" aria-label="Zur Startseite">‹</button><strong>♟ Neue Partie</strong></header>
+ modal.innerHTML=`<div class="v555SetInner"><header class="v555SetHead"><button class="v555Back" id="v555Back" type="button" aria-label="Zur Startseite">‹</button><strong>♟ Neue Partie <span class="v562Version">V5.64</span></strong></header>
  <div class="v555SelectLine"><span>⚡</span><label>Zeitkontrolle<select id="v555Time" aria-label="Zeitkontrolle"></select></label></div>
- <div class="v555Cards">
+ <div class="v555Cards" hidden style="display:none!important" aria-hidden="true">
   <button type="button" class="v555Card v555Primary" id="v555Quick"><span>▶</span><span><b>Starten</b><small>Neue Partie mit gewählten Einstellungen</small></span><span class="v555Chevron">›</span></button>
   <button type="button" class="v555Card" id="v555Tournaments"><span>🏆</span><span><b>Turniere</b><small>Online-Turniere sind noch nicht angebunden</small></span><span class="v555Chevron">›</span></button>
   <button type="button" class="v555Card" data-v555mode="free"><span>👥</span><span><b>Gegen Freund spielen</b><small>Zwei Personen am selben Handy</small></span><span class="v555Chevron">›</span></button>
@@ -3468,10 +3417,10 @@ function v555Init(goPage){
   <button type="button" class="v555Card" data-v555mode="coach"><span>🧠</span><span><b>Coach spielen</b><small>Gegen Computer mit Trainer</small></span><span class="v555Chevron">›</span></button>
  </div>
  <details class="v555Options" id="v555Options" open><summary>⚙ Benutzerdefiniertes Spiel</summary>
-
+  <button type="button" id="v558OnlineMenu" hidden style="display:none" class="v558OnlineMenu">🌐 Online spielen <small>Gegner suchen · Freunde einladen · QR-Code</small></button>
   <div class="v555OptionGrid">
   <label>Gegner<select id="v555Mode"><option value="computer">Computer (offline)</option><option value="free">Freund am Handy</option><option value="coach">Computer + Coach</option><option value="online">Online – Spieler suchen / Freund einladen</option></select></label>
-  <label>Spielmodus<select id="v558Variant" aria-label="Schach-Spielmodus"><option value="standard">Klassisches Schach</option><option value="chess960">Schach960</option><option value="kingofthehill">King of the Hill</option><option value="threecheck">Three-Check</option><option value="antichess">Räuberschach / Antichess</option><option value="atomic">Atomschach</option><option value="horde">Horde</option><option value="racingkings">Racing Kings</option><option value="crazyhouse">Crazyhouse</option><option value="simul">Simultanschach</option><option value="blind1">Blindschach 1 – Leicht</option><option value="blind2">Blindschach 2 – Mittel</option><option value="blind3">Blindschach 3 – Schwer</option><option value="blind4">Blindschach 4 – Experte</option><option value="blind5">Blindschach 5 – Meister</option></select></label>
+  <label>Spielmodus <span class="v562Hint">15 Modi · offline spielbar</span><select id="v558Variant" aria-label="Schach-Spielmodus"><option value="standard">Klassisches Schach</option><option value="chess960">Schach960</option><option value="kingofthehill">King of the Hill</option><option value="threecheck">Three-Check</option><option value="antichess">Räuberschach / Antichess</option><option value="atomic">Atomschach</option><option value="horde">Horde</option><option value="racingkings">Racing Kings</option><option value="crazyhouse">Crazyhouse</option><option value="simul">Simultanschach</option><option value="blind1">Blindschach 1 – Leicht</option><option value="blind2">Blindschach 2 – Mittel</option><option value="blind3">Blindschach 3 – Schwer</option><option value="blind4">Blindschach 4 – Experte</option><option value="blind5">Blindschach 5 – Meister</option></select></label>
   <label class="v555Full" id="v559OnlineProfile" hidden>Dein Spielername<input id="v559OnlineName" maxlength="32" autocomplete="nickname" placeholder="Spielername"></label>
   <label id="v559OnlineType" hidden>Online-Partie<select id="v559MatchType"><option value="quick">Gegner suchen</option><option value="private">Privat – Freund einladen</option><option value="join">Code / QR beitreten</option></select></label>
   <label id="v559OnlineRating" hidden>Glicko-2 Rating <span class="v559RatingChoice"><input type="checkbox" id="v559Rated"> Gewertete Partie</span></label>
@@ -3481,7 +3430,7 @@ function v555Init(goPage){
   <label>Brettdesign<select id="v555Board"><option value="turnier">Turniergrün</option><option value="holz">Holz</option><option value="marmor">Marmor</option><option value="nacht">Premium Nacht</option></select></label>
   <label>Figurenstil<select id="v555Pieces"><option value="premium">Premium</option><option value="klassisch">Klassisch</option><option value="kontrast">Kontrast</option></select></label>
  </div><div id="v555SetNote" class="v555Info"></div><button type="button" id="v555SetStart">▶ Partie starten</button></details>
- <button type="button" class="v555Card" id="v555Local" style="width:100%;margin-top:11px;text-align:left;padding:14px"><span>♟</span><span><b>Am Brett spielen</b><small>Offline zu zweit am Gerät</small></span><span class="v555Chevron">›</span></button>
+ <button type="button" class="v555Card" id="v555Local" hidden style="display:none;width:100%;margin-top:11px;text-align:left;padding:14px"><span>♟</span><span><b>Am Brett spielen</b><small>Offline zu zweit am Gerät</small></span><span class="v555Chevron">›</span></button>
  <button type="button" id="v555Resume">↪ Laufende Partie fortsetzen</button>
  </div>`;
  document.body.append(modal);
@@ -3491,13 +3440,12 @@ function v555Init(goPage){
  const game=elem('gameContent'),header=document.createElement('div');header.id='v555PlayHeader';header.innerHTML='<button type="button" id="v555PlayBack" aria-label="Zur Partieauswahl">‹</button><strong>♟ Schach 1001+ Pro</strong>';game.prepend(header);
  const actions=document.createElement('div');actions.id='v555PlayActions';actions.innerHTML='<button type="button" id="v555Undo"><span>↶</span>Zug zurücknehmen</button><button type="button" id="v555Resign"><span>⚑</span>Aufgeben</button><button type="button" id="v555Draw"><span>♧</span>Remis anbieten</button>';
  elem('gameBoard').closest('.gameBoardPanel').append(actions);
- const retry=document.createElement('button');retry.type='button';retry.id='v562RetryComputer';retry.textContent='♟ Computerzug erneut';retry.title='Stockfish nach einem Engine-Fehler erneut starten';retry.onclick=retryComputerMove;actions.append(retry);
-
  elem('v555Back').onclick=()=>goPage('home');elem('v555PlayBack').onclick=v555GoSetup;
  elem('v555Quick').onclick=v555Start;elem('v555SetStart').onclick=v555Start;
+ window.addEventListener('pageshow',()=>{const btn=elem('v555SetStart');if(btn&&btn.disabled){btn.disabled=false;v555SyncSetup();}});
  elem('v555Resume').onclick=v555EnterPlay;
  elem('v555Local').onclick=()=>{v555CurrentMode='free';v555SyncSetup();elem('v555Options').open=true;elem('v555Options').scrollIntoView({block:'nearest'})};
- elem('v555Tournaments').onclick=()=>{v555CurrentMode='online';v555SyncSetup();elem('v555Options').open=true;elem('v559OnlineProfile').scrollIntoView({block:'nearest',behavior:'smooth'});};
+ elem('v555Tournaments').onclick=()=>{v555CurrentMode='online';v555SyncSetup();v559OpenOnline()};
  elem('v558OnlineMenu').onclick=()=>{v555CurrentMode='online';v555SyncSetup();elem('v555Options').open=true;elem('v559OnlineProfile').scrollIntoView({block:'nearest',behavior:'smooth'});};
  elem('v559OnlineName').value=localStorage.getItem('schach1001_online_name')||'Spieler';
  elem('v559OnlineName').oninput=()=>localStorage.setItem('schach1001_online_name',elem('v559OnlineName').value.slice(0,32));
@@ -3514,7 +3462,7 @@ function v555Init(goPage){
   v555SyncSetup();elem('v555Options').open=true;elem('v555Options').scrollIntoView({block:'nearest',behavior:'instant'})});
  modal.querySelectorAll('[data-v555side]').forEach(b=>b.onclick=()=>{v555SelectedSide=b.dataset.v555side;v555SyncSetup()});
  time.onchange=()=>{setup.time=time.value;refreshTimePicker();persist()};
- elem('v555Undo').onclick=()=>undo();elem('v555Resign').onclick=()=>resign();elem('v555Draw').onclick=()=>offerDraw();
+ elem('v555Undo').onclick=()=>elem('gameUndo')?.click();elem('v555Resign').onclick=()=>elem('gameResign')?.click();elem('v555Draw').onclick=()=>elem('gameOffer')?.click();
  window.ChessAnalysisQA=Object.assign(window.ChessAnalysisQA||{}, {v555OpenSetup:v555GoSetup,v555Start,v555EnterPlay,v555Phase:()=>v555Phase});
 }
 

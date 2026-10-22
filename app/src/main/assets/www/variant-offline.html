@@ -1,0 +1,77 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14231b"><title>Schach Pro · Offline-Varianten</title>
+<style>
+:root{color-scheme:dark;--paper:#f3d898;--line:#687c61;--gold:#f6c46c;--ok:#a3e9a0;--muted:#adbfad;--bg:#101814}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at 90% 0%,#42351b 0,transparent 34%),radial-gradient(ellipse at 0 45%,#203b28,transparent 68%),#101713;color:#f1f3e8;font:15px system-ui,-apple-system,Arial,sans-serif}
+main{max-width:680px;margin:auto;padding:10px 10px 36px}.head{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:9px 2px 12px}.head button{flex:0 0 auto}.head strong{font-size:clamp(16px,4.7vw,22px);color:#fff}.minor{font-size:12px;color:#c9d4bf}
+button,select,input{font:inherit;color:inherit}button{cursor:pointer}button:disabled{opacity:.5}.btn{background:linear-gradient(135deg,#354f3b,#26382c);border:1px solid #647d63;border-radius:16px;padding:11px 14px;min-height:43px}.btn.gold{background:linear-gradient(140deg,#f3cb76,#b6803b);color:#1a1c17;border:1px solid #ebbd5c;font-weight:800}.btn.active{outline:2px solid #c2e286}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.section{border:1px solid #68795285;background:linear-gradient(150deg,#26372be9,#18251ded);padding:12px;border-radius:24px;margin-bottom:13px;box-shadow:0 9px 20px #0006}.section h2{font-size:17px;margin:0 0 8px}.muted{color:#bbcaba;font-size:13px}.status{color:var(--gold);font-weight:700;line-height:1.4;margin:11px 2px}.pills{display:flex;gap:8px;justify-content:space-between;margin:10px 0}.pill{border:1px solid #526e54;border-radius:14px;background:#14251c;padding:9px 12px;flex:1;text-align:center}.pill strong{display:block;font-variant-numeric:tabular-nums;font-size:18px}.pill.active{outline:2px solid #9acd78}
+.board-wrap{border-radius:12px;border:5px solid #bc8843;outline:2px solid #382710;box-shadow:0 0 0 5px #292117,0 16px 30px #000b;margin:11px 5px 13px;overflow:hidden}.board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));aspect-ratio:1;width:100%;touch-action:manipulation}.sq{display:grid;place-items:center;position:relative;border:0;border-radius:0;padding:0;min-width:0;font-size:clamp(23px,8.2vw,54px);line-height:1;box-shadow:inset 0 1px #ffffff15;user-select:none}.sq.light{background:linear-gradient(145deg,#ffffff40,transparent 48%,#71440952),repeating-linear-gradient(96deg,#fff8d325 0 2px,transparent 3px 6px),linear-gradient(130deg,#c08d43,#f0d28d 48%,#bb7b31)}.sq.dark{background:linear-gradient(140deg,#ffffff1c,transparent 40%,#0007),repeating-linear-gradient(135deg,#252a30 0 3px,#111318 5px 7px)}.sq.selected{box-shadow:inset 0 0 0 4px #64d4b0,inset 0 0 14px #00e0a9}.sq.target::after{position:absolute;content:"";width:23%;height:23%;border-radius:50%;background:#34c7a48b;box-shadow:0 0 10px #1fc6b5a8}.sq.target.occupied::after{width:89%;height:89%;border:4px solid #1ce5b7;background:transparent}.sq .piece{font-family:'DejaVu Sans','Segoe UI Symbol',serif;font-weight:800;pointer-events:none;filter:drop-shadow(0 2px 2px #000b)}.sq .piece.gold{background:linear-gradient(140deg,#673509,#ffebb0 18%,#d4a343 43%,#6a370e 60%,#f9cf79 88%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:1px #543109}.sq .piece.black{background:linear-gradient(125deg,#020408,#828184 15%,#151a20 38%,#07080a 72%,#3b4145);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:1.2px #e7ba69}.sq .marker{position:absolute;left:3px;top:3px;font-size:10px;color:#322814;pointer-events:none}.sq.dark .marker{color:#c8b481}.sq .marker.file{top:auto;left:auto;right:3px;bottom:3px}.sq .disc{border-radius:50%;width:77%;height:77%;display:block;box-shadow:inset 1px 2px 4px #fff5,inset -3px -3px 6px #0008,0 2px 3px #0009}.sq .disc.gold{background:radial-gradient(circle at 33% 30%,#ffefac,#a36d26);border:2px solid #674016}.sq .disc.black{background:radial-gradient(circle at 33% 30%,#61666a,#080a0c);border:2px solid #d0a95a}
+select,input{background:#14241b;border:1px solid #698064;border-radius:12px;min-height:44px;padding:8px;width:100%}.moves{max-height:125px;overflow:auto;border-radius:14px;background:#0d1c15;padding:10px;line-height:1.7;color:#e8daba;font-variant-numeric:tabular-nums;word-break:break-word}
+#coachNote{border-left:3px solid #ddb46a;border-radius:12px;padding:12px;background:#10251a;line-height:1.55;min-height:64px}#coachNote strong{color:#f6d792}.stats{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#cadbc3;font-size:13px;margin:7px 0}.stats strong{color:#f1d087}.tabs{display:flex;gap:6px;overflow:auto;margin:7px 0}.tabs button{min-width:84px;flex:1;white-space:nowrap}.pocket{display:flex;gap:7px;flex-wrap:wrap;align-items:center;min-height:38px}.pocket button{font-size:22px;min-width:46px}.hide{display:none!important}.promote{border-radius:20px;border:1px solid #c59b56;background:#102017;padding:16px;display:flex;flex-wrap:wrap;gap:10px}.promote button{font-size:27px}.modal{position:fixed;inset:0;background:#000c;display:grid;place-items:center;z-index:10;padding:16px}.result{font-size:16px;color:#f5d188}.helper{font-size:12px;color:#a5b5a5;line-height:1.5}.analysis-entry{border-top:1px solid #596956;padding:7px 1px}#reviewMove{max-height:240px;overflow:auto}.softBtn{border-radius:12px;background:#253c2c;border:1px solid #456f4e;padding:7px 12px;min-height:38px}#blindInputRow{display:flex;gap:7px}#blindInputRow input{flex:1}#blindInputRow button{flex:0 0 auto}.notice{padding:8px;color:#f7dc92;border:1px solid #5d7955;background:#203428;border-radius:12px;font-size:12px}
+
+body.v563Green .sq.light{background:#eeeed2!important}
+body.v563Green .sq.dark{background:#769656!important}
+body.v563Green .board-wrap{border-color:#526d4c;outline-color:#344b36;box-shadow:0 3px 12px #0006}
+body.v563Green .sq .piece.gold,body.v563Green .sq .piece.black{
+ background:none!important;-webkit-background-clip:initial!important;background-clip:initial!important;
+ -webkit-text-stroke:0!important;color:inherit!important}
+body.v563Green .sq .piece.gold{color:#fffdf0!important;filter:drop-shadow(0 1px 2px #15251d)}
+body.v563Green .sq .piece.black{color:#1b2722!important;filter:drop-shadow(0 1px 1px #ffffff80)}
+main{max-width:100vw;padding:3px 4px 12px}
+.head{padding:2px 2px 5px;gap:6px}
+.head strong{font-size:15px}.head .minor{font-size:10px}
+.section{padding:5px 3px 7px;border-radius:12px;margin-bottom:6px}
+.pills{margin:2px 1px 5px;gap:5px}.pill{padding:3px 5px;border-radius:10px}
+.pill strong{font-size:15px}.pill span{font-size:11px}
+.board-wrap{margin:5px 1px 7px;border-width:3px;border-radius:7px;outline-width:1px}
+.status{margin:5px 2px;font-size:13px}
+.btn{padding:5px 6px;min-height:34px;border-radius:11px;font-size:12px}
+.row{gap:5px}.section .row[style]{margin:5px 0!important}
+#coachPanel{margin-top:8px}
+
+/* V5.64: fixed viewport, board sized to available height, no page scrolling. */
+html,body{height:100%;height:100dvh;overflow:hidden!important;overscroll-behavior:none}
+body{position:fixed;inset:0;width:100%;touch-action:manipulation}
+main{height:100dvh;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden!important;padding:env(safe-area-inset-top) 2px env(safe-area-inset-bottom)!important;max-width:100vw}
+.head{flex:0 0 auto;padding:2px 4px!important;min-height:31px}
+.head .minor{font-size:10px}
+main>.section:first-of-type{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;margin:0 2px 2px;padding:3px!important;border-radius:10px}
+main>.section:not(:first-of-type){display:none}
+.pills{flex:0 0 auto;margin:1px 0 3px!important}
+.pill{padding:2px!important;border-radius:8px}
+.pill strong{font-size:13px!important}
+.pill span{font-size:10px!important}
+.board-wrap{flex:0 1 auto;align-self:center;width:min(calc(100vw - 12px),calc(100dvh - 215px));max-width:100%;max-height:calc(100dvh - 215px);aspect-ratio:1;margin:2px auto!important;border:2px solid #466445!important;outline:none!important;border-radius:3px!important;box-shadow:none!important}
+.board{width:100%;height:100%;aspect-ratio:1}
+.sq{box-shadow:none!important;font-size:clamp(19px,9.5vw,56px)}
+body.v563Green .sq.light{background:#eeeed2!important}
+body.v563Green .sq.dark{background:#779556!important}
+body.v563Green .sq .piece.gold{color:#fff!important;-webkit-text-stroke:.7px #555!important;filter:drop-shadow(0 1px 1px #444)!important}
+body.v563Green .sq .piece.black{color:#555!important;-webkit-text-stroke:.6px #292929!important;filter:drop-shadow(0 1px 1px #222)!important}
+.status{font-size:12px!important;line-height:1.1;margin:3px 2px!important;flex:0 0 auto}
+#blindInputRow{flex:0 0 auto}
+#blindInputRow input{min-height:32px;padding:4px}
+.section .row{flex:0 0 auto;gap:3px!important;flex-wrap:nowrap}
+.section .row[style]{margin:2px 0!important}
+.btn{font-size:11px!important;padding:4px 3px!important;min-height:30px!important;border-radius:8px!important}
+#pockets{min-height:24px}
+#coachPanel,#analysisPanel{position:fixed;left:6px;right:6px;bottom:calc(env(safe-area-inset-bottom) + 6px);z-index:8;max-height:48dvh;overflow:auto;display:block!important;border:1px solid #a0bd91}
+#coachPanel.hide,#analysisPanel.hide{display:none!important}
+#analysisPanel:not(.hide){z-index:9}
+#simulTabs{flex:0 0 auto;overflow-x:auto;max-height:36px}
+@media(max-height:650px){.board-wrap{width:min(calc(100vw - 12px),calc(100dvh - 180px));max-height:calc(100dvh - 180px)}.head{min-height:26px}.btn{min-height:27px!important}}
+</style></head><body><main>
+<div class="head"><button id="goBack" class="btn">‹ Menü</button><div><strong id="variantName">Offline-Schach</strong><div id="matchLabel" class="minor">Lokaler Spielmodus</div></div><span class="minor">V5.64</span></div>
+<div class="section">
+<div id="simulTabs" class="tabs hide"></div><div class="pills"><div id="clockW" class="pill"><span>Gold / Weiß</span><strong id="timeW">–</strong></div><div id="clockB" class="pill"><span>Schwarzmetall</span><strong id="timeB">–</strong></div></div>
+<div class="board-wrap"><div id="board" class="board" aria-label="Schachbrett mit 64 Feldern"></div></div>
+<div id="status" class="status">Schachpartie bereit</div>
+<div id="pockets" class="pocket hide"></div>
+<div id="blindInputRow" class="hide"><input id="blindInput" placeholder="Blindzug, z. B. e2e4" autocomplete="off" aria-label="Zug als Koordinaten"><button class="btn" id="blindPlay">Spielen</button></div>
+<div class="row" style="margin:10px 0"><button id="undo" class="btn">↶ Rückgängig</button><button id="flip" class="btn">↻ Drehen</button><button id="newGame" class="btn">♟ Neue Partie</button></div>
+<div class="row"><button id="toggleCoach" class="btn gold">🧠 Coach: AN</button><button id="toggleAnalysis" class="btn">🔎 Analyse</button></div>
+</div>
+<div class="section" id="coachPanel"><h2>🧠 Varianten-Coach</h2><div id="coachNote">Spiele deinen ersten Zug. Der Coach erklärt anschließend deine Entscheidung.</div><div id="evaluation" class="stats"></div><p class="helper">Die Bewertung läuft vollständig offline mit einer lokalen Varianten-Suche. Stockfish 19 Lite unterstützt diese Sonderregeln nicht; die Einschätzungen sind deshalb Näherungen, keine Stockfish-Werte.</p></div>
+<div class="section"><h2>Partieverlauf</h2><div id="history" class="moves">Noch keine Züge.</div></div>
+<div class="section hide" id="analysisPanel"><h2>🔍 Partien analysieren</h2><p class="muted">Zugbewertung, beste Fortsetzung, Stellungsbewertung und Rückblick für diese Schachvariante – auch offline.</p><div id="reviewMove"></div><div class="row"><button id="analyzePosition" class="btn gold">Stellung bewerten</button><button id="copyMoves" class="btn">Züge kopieren</button></div></div>
+<div id="promotionDialog" class="modal hide" role="dialog" aria-modal="true" aria-label="Bauernumwandlung"><div class="promote"><h3 style="width:100%">Figur wählen</h3><div id="promotionOptions" class="row"></div><button class="btn" id="cancelPromotion">Abbrechen</button></div></div>
+</main><script src="./variant-rules.js?v=564"></script><script src="./variant-offline.js?v=564"></script></body></html>
