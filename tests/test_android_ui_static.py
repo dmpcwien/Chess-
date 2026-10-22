@@ -51,9 +51,9 @@ class ChessControls(unittest.TestCase):
 
     def test_every_static_button_has_identifier_or_action(self):
         # Only buttons in the initial HTML. Dynamic buttons are checked above.
-        for tag in re.findall(r"<button\\b[^>]*>", HTML, flags=re.I):
+        for tag in re.findall(r"<button\b[^>]*>", HTML, flags=re.I):
             with self.subTest(button=tag[:110]):
-                self.assertTrue(re.search(r"\\b(id|onclick|data-[\\w-]+)\\s*=", tag),
+                self.assertTrue(re.search(r"\b(id|onclick|data-[\w-]+)\s*=", tag),
                                 f"Button without selector/action: {tag[:140]}")
 
 
