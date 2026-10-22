@@ -77,8 +77,12 @@ def test_unrated_online_time_gift_is_server_authorized_and_synced():
 def test_rated_online_time_gift_is_rejected():
     rooms.clear()
     with TestClient(app) as client:
-        host = client.post("/api/rooms", json={"name": "Alice", "mode": "standard", "rated": True}).json()
-        guest = client.post(f"/api/rooms/{host['code']}/join", json={"name": "Bob"}).json()
+        alice = client.post("/api/players", json={"name": "Alice"}).json()
+        bob = client.post("/api/players", json={"name": "Bob"}).json()
+        host = client.post("/api/rooms", json={"name": "Alice", "mode": "standard", "rated": True, "player_token": alice["token"]}).json()
+        assert "code" in host, host
+        guest = client.post(f"/api/rooms/{host['code']}/join", json={"name": "Bob", "player_token": bob["token"]}).json()
+        assert "board_id" in guest, guest
         bid = guest["board_id"]
         with client.websocket_connect(f"/ws/{host['code']}/{host['token']}") as host_ws:
             host_ws.receive_json()
