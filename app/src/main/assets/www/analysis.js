@@ -429,7 +429,7 @@ async function scheduleComputer(){
  if(isTimed())updateClock();if(gameResult){busy=false;return}
  let chosen=null,engineUsed='offline';
  const plan=v532EnginePlan(setup.elo,isTimed()?clock[pos.turn]:Infinity);
- const useStockfish=!!plan||setup.engine==='stockfish';
+ const useStockfish=true; // All computer levels require a real Stockfish move.
  if(useStockfish&&typeof window.analyzeFen==='function'){
   try{
    setNote(plan?'Stockfish spielt mit Stärkeprofil '+plan.engineElo+' (keine offiziell gemessene Elo) …':'Stockfish wird abgefragt …');
@@ -438,7 +438,7 @@ async function scheduleComputer(){
    const depth=plan?plan.depth:Math.max(5,Math.min(15,7+Math.round(level/3)));
    const sf=await window.analyzeFen(toFen(pos),depth,1,options);
    if(t===token&&sf&&sf.bestmove){chosen=legal(pos).find(m=>moveUci(m)===sf.bestmove);if(chosen)engineUsed='stockfish'}
-  }catch(e){if(t===token)setNote('Stockfish konnte den Zug nicht berechnen. '+(e?.message||'')+' Einfacher Notfallgegner übernimmt.',true)}
+  }catch(e){if(t===token)setNote('Stockfish konnte den Zug nicht berechnen. '+(e?.message||'')+' Kein Ersatzgegner wird verwendet.',true)}
  }
  if(t!==token){busy=false;render();return}
  if(!chosen){
@@ -452,16 +452,16 @@ async function scheduleComputer(){
 
 function gameNew(){
  v551ApplyAdaptiveOpponent();reviewPly=null;premove=null;premovePlan=[];token++;busy=false;suggestedMove=null;analysisSequence++;clearFlights();pos=fromFen(startFen);record=[];picked=-1;gameResult=null;clock=newClock();openingCompleted=false;sessionId='s'+Date.now()+'-'+Math.floor(Math.random()*1e6);
- // V5.54: Uhrstart erst nach dem ersten weißen UND schwarzen Zug.
+ // Die Uhr beginnt nach dem ersten weißen Zug; Schwarz wird dann aktiv.
  v57HintLevel=0;v57VoiceLast='';v57StopSpeech();
- elem('gameAnalysis').textContent=isTraining()?'Trainiere eine Eröffnung ohne Uhr.':'Neue Partie. Die Uhr beginnt erst nach dem ersten weißen und schwarzen Zug.';
+ elem('gameAnalysis').textContent=isTraining()?'Trainiere eine Eröffnung ohne Uhr.':'Neue Partie. Die Uhr beginnt nach dem ersten weißen Zug.';
  elem('gameTopAnalysis').textContent=bestVisible()?'Stockfish berechnet den nächsten Zug.':'Stockfish bewertet die Stellung. Bester Zug ist ausgeschaltet.';
  elem('gameBestReadout').textContent='Tippe auf „Besten Zug prüfen“, um den nächsten Zug zu sehen.';refreshCoach();
  setNote('Neue Partie gestartet. Ziehe eine Figur oder tippe auf Start- und Zielfeld.');persist();render();if(setup.mode==='computer'&&setup.side===B)scheduleComputer();if(isTraining()){trainingMessage();if(pos.turn!==opening().side)openingAuto()}renderProfile();
 }
 function undo(){reviewPly=null;premove=null;premovePlan=[];v57StopSpeech();token++;busy=false;suggestedMove=null;analysisSequence++;clearFlights();let count=(setup.mode==='computer'&&record.length>=2&&pos.turn===setup.side)?2:1;
  for(let j=0;j<count&&record.length;j++){let z=record.pop();pos=fromFen(z.before);clock=z.beforeClock||newClock();}
- if(record.length<2)clock=newClock();else clock.lastAt=Date.now();gameResult=null;clock.finished=null;openingCompleted=false;picked=-1;setNote('Zug zurückgenommen.');elem('gameAnalysis').textContent='Analyse wird nach dem nächsten Zug aktualisiert.';persist();render();if(setup.mode==='computer'&&pos.turn!==setup.side)scheduleComputer();if(isTraining()){trainingMessage();if(pos.turn!==opening().side)openingAuto()}}
+ if(!record.length)clock=newClock();else clock.lastAt=Date.now();gameResult=null;clock.finished=null;openingCompleted=false;picked=-1;setNote('Zug zurückgenommen.');elem('gameAnalysis').textContent='Analyse wird nach dem nächsten Zug aktualisiert.';persist();render();if(setup.mode==='computer'&&pos.turn!==setup.side)scheduleComputer();if(isTraining()){trainingMessage();if(pos.turn!==opening().side)openingAuto()}}
 async function analyze(){
  const available=legal(pos),end=outcome(pos)||gameResult;
  const near=elem('gameTopAnalysis'),coach=elem('gameBestReadout'),panel=elem('gameAnalysis');
