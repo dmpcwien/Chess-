@@ -1,0 +1,38 @@
+name: Restore exact V5.64 web source
+on:
+  push:
+    branches: [schach-v559-neustart]
+    paths: [v564-original-source.zip]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: schach-v559-neustart
+          persist-credentials: true
+      - name: Validate V5.64 source archive
+        run: |
+          test -f v564-original-source.zip
+          python3 - <<'PY'
+          import json,hashlib,zipfile
+          with zipfile.ZipFile('v564-original-source.zip') as z:
+              manifest=json.loads(z.read('V564-ORIGINAL-MANIFEST.json'))
+              assert len(manifest['files'])==47
+              for name,digest in manifest['files'].items():
+                  data=z.read('app/src/main/'+name)
+                  assert hashlib.sha256(data).hexdigest()==digest,name
+          print('47 V5.64 files verified')
+          PY
+      - name: Replace web source exactly with original V5.64
+        run: |
+          git rm -rf app/src/main/assets/www
+          unzip -oq v564-original-source.zip 'app/src/main/assets/www/*'
+          git add -A app/src/main/assets/www
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git diff --cached --quiet || git commit -m 'Restore exact V5.64 APK web source (47 verified files)'
+          git push
