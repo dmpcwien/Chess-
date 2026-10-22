@@ -2,7 +2,7 @@ name: Restore exact V5.64 web source
 on:
   push:
     branches: [schach-v559-neustart]
-    paths: [v564-original-source.zip]
+    paths: [Schach-Pro-V5.64-Original-Quellcode.zip, .github/workflows/restore-v564-original.yml]
   workflow_dispatch:
 permissions:
   contents: write
@@ -16,10 +16,10 @@ jobs:
           persist-credentials: true
       - name: Validate V5.64 source archive
         run: |
-          test -f v564-original-source.zip
+          test -f Schach-Pro-V5.64-Original-Quellcode.zip
           python3 - <<'PY'
           import json,hashlib,zipfile
-          with zipfile.ZipFile('v564-original-source.zip') as z:
+          with zipfile.ZipFile('Schach-Pro-V5.64-Original-Quellcode.zip') as z:
               manifest=json.loads(z.read('V564-ORIGINAL-MANIFEST.json'))
               assert len(manifest['files'])==47
               for name,digest in manifest['files'].items():
@@ -30,7 +30,7 @@ jobs:
       - name: Replace web source exactly with original V5.64
         run: |
           git rm -rf app/src/main/assets/www
-          unzip -oq v564-original-source.zip 'app/src/main/assets/www/*'
+          unzip -oq Schach-Pro-V5.64-Original-Quellcode.zip 'app/src/main/assets/www/*'
           git add -A app/src/main/assets/www
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
