@@ -399,6 +399,7 @@ function playMove(m,human,fromGhost=null){
  const fromRect=fromGhost||((original&&original.getBoundingClientRect())||null),before=pos,all=legal(before),san=notation(before,m,all),oldClock=saveClock();
  suggestedMove=null;analysisSequence++;pos=move(before,m);clockAfterMove(before.turn);if(gameResult){pos=before;return;}
  record.push({f:m.f,t:m.t,san,uci:sq(m.f)+sq(m.t)+(m.promo||''),before:toFen(before),after:toFen(pos),actor:human?'Mensch':'Computer',beforeClock:oldClock});
+ if(setup.mode==='free'&&elem('v561Moves')){const strip=elem('v561Moves');strip.textContent=record.slice(-18).map((entry,i)=>entry.san).join('  ·  ');strip.scrollLeft=strip.scrollWidth;}
  v57HintLevel=0;if(elem('v57GameHintText'))elem('v57GameHintText').textContent='Tippe auf Hinweis für drei aufeinanderfolgende Hilfestufen.';if(v57prefs.vibrate&&navigator.vibrate)navigator.vibrate(15);
  picked=-1;token++;persist();render();v517AfterMove(m,human);if(fromRect)floatPiece({t:m.t,pc:before.board[m.f],sourceRect:fromRect});
  let end=outcome(pos);if(end){gameResult=end;if(isTimed())clock.active=null;persist();archiveGame();render()}
@@ -3387,7 +3388,7 @@ function v561PersonLayout(){
   nav.innerHTML='<button type="button" id="v561Options">☷<small>Optionen</small></button><button type="button" id="v561Pause">Ⅱ<small>Pause</small></button><button type="button" id="v561Back">❮<small>Zurück</small></button><button type="button" id="v561Forward">❯<small>Vor</small></button>';
   panel.prepend(strip,top);panel.append(bottom,nav);
   elem('v561Options').onclick=()=>v555GoSetup();
-  elem('v561Pause').onclick=()=>{if(!clock.started){setNote('Die Uhr läuft noch nicht.');return}updateClock();clock.started=false;clock.lastAt=0;paintClock();elem('v561Pause').querySelector('small').textContent='Weiter';};
+  elem('v561Pause').onclick=()=>{if(!clock.started){if(!clock.active||gameResult)return;clock.started=true;clock.lastAt=Date.now();elem('v561Pause').querySelector('small').textContent='Pause';paintClock();return}updateClock();clock.started=false;clock.lastAt=0;paintClock();elem('v561Pause').querySelector('small').textContent='Weiter';};
   elem('v561Back').onclick=()=>changeReviewPly(-1);
   elem('v561Forward').onclick=()=>changeReviewPly(1);
  }
