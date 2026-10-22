@@ -3355,6 +3355,7 @@ function v555SyncSetup(){
  :v555CurrentMode==='free'?'Zwei Personen spielen abwechselnd am selben Gerät.'
  :v555CurrentMode==='coach'?'Offline gegen Stockfish mit Trainer – ohne Internet.'
  :'Offline gegen Stockfish: wähle die Stärke und starte direkt auf dem lokalen Schachbrett.';
+ const onlineShortcut=elem('v558OnlineMenu');if(onlineShortcut)onlineShortcut.hidden=true;
  const startBtn=elem('v555SetStart');
  startBtn.textContent=online?'🌐 Online-Partie öffnen':onlyOnline?'⚠ Sondervariante nur online':'▶ Offline-Partie starten';
  startBtn.disabled=onlyOnline;
@@ -3409,7 +3410,7 @@ function v555Init(goPage){
   <button type="button" class="v555Card" data-v555mode="coach"><span>🧠</span><span><b>Coach spielen</b><small>Gegen Computer mit Trainer</small></span><span class="v555Chevron">›</span></button>
  </div>
  <details class="v555Options" id="v555Options" open><summary>⚙ Benutzerdefiniertes Spiel</summary>
-  <button type="button" id="v558OnlineMenu" class="v558OnlineMenu">🌐 Online spielen <small>Gegner suchen · Freunde einladen · QR-Code</small></button>
+
   <div class="v555OptionGrid">
   <label>Gegner<select id="v555Mode"><option value="computer">Computer (offline)</option><option value="free">Freund am Handy</option><option value="coach">Computer + Coach</option><option value="online">Online – Spieler suchen / Freund einladen</option></select></label>
   <label>Spielmodus<select id="v558Variant" aria-label="Schach-Spielmodus"><option value="standard">Klassisches Schach</option><option value="chess960">Schach960</option><option value="kingofthehill">King of the Hill</option><option value="threecheck">Three-Check</option><option value="antichess">Räuberschach / Antichess</option><option value="atomic">Atomschach</option><option value="horde">Horde</option><option value="racingkings">Racing Kings</option><option value="crazyhouse">Crazyhouse</option><option value="simul">Simultanschach</option><option value="blind1">Blindschach 1 – Leicht</option><option value="blind2">Blindschach 2 – Mittel</option><option value="blind3">Blindschach 3 – Schwer</option><option value="blind4">Blindschach 4 – Experte</option><option value="blind5">Blindschach 5 – Meister</option></select></label>
@@ -3436,7 +3437,7 @@ function v555Init(goPage){
  elem('v555Quick').onclick=v555Start;elem('v555SetStart').onclick=v555Start;
  elem('v555Resume').onclick=v555EnterPlay;
  elem('v555Local').onclick=()=>{v555CurrentMode='free';v555SyncSetup();elem('v555Options').open=true;elem('v555Options').scrollIntoView({block:'nearest'})};
- elem('v555Tournaments').onclick=()=>{v555CurrentMode='online';v555SyncSetup();v559OpenOnline()};
+ elem('v555Tournaments').onclick=()=>{v555CurrentMode='online';v555SyncSetup();elem('v555Options').open=true;elem('v559OnlineProfile').scrollIntoView({block:'nearest',behavior:'smooth'});};
  elem('v558OnlineMenu').onclick=()=>{v555CurrentMode='online';v555SyncSetup();elem('v555Options').open=true;elem('v559OnlineProfile').scrollIntoView({block:'nearest',behavior:'smooth'});};
  elem('v559OnlineName').value=localStorage.getItem('schach1001_online_name')||'Spieler';
  elem('v559OnlineName').oninput=()=>localStorage.setItem('schach1001_online_name',elem('v559OnlineName').value.slice(0,32));
@@ -3450,9 +3451,6 @@ function v555Init(goPage){
  variantPicker.onchange=()=>{localStorage.setItem('schach1001_custom_variant_v558',variantPicker.value);v555SyncSetup()};
  elem('v555Mode').onchange=e=>{v555CurrentMode=e.target.value;v555SyncSetup()};
  modal.querySelectorAll('[data-v555mode]').forEach(b=>b.onclick=()=>{v555CurrentMode=b.dataset.v555mode;
-  if(v555CurrentMode!=='online' && variantPicker.value!=='standard'){
-   variantPicker.value='standard';localStorage.setItem('schach1001_custom_variant_v558','standard');
-  }
   v555SyncSetup();elem('v555Options').open=true;elem('v555Options').scrollIntoView({block:'nearest',behavior:'instant'})});
  modal.querySelectorAll('[data-v555side]').forEach(b=>b.onclick=()=>{v555SelectedSide=b.dataset.v555side;v555SyncSetup()});
  time.onchange=()=>{setup.time=time.value;refreshTimePicker();persist()};
