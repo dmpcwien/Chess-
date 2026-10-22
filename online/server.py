@@ -121,6 +121,8 @@ class Match:
     rating_change: dict | None = None
     rating_applied: bool = False
     rating_message: str = ""
+    gifted_seconds_white: int = 0
+    gifted_seconds_black: int = 0
 
 
 @dataclass
@@ -377,6 +379,7 @@ def snapshot(room: Room, token: str) -> dict:
         data.append({
             "id": board_id, "guest_name": match.guest_name,
             "rated": room.rated,
+            "gifted_seconds": {"white": match.gifted_seconds_white, "black": match.gifted_seconds_black},
             "blind_level": int(room.mode[-1]) if room.mode.startswith("blind") else 0,
             "rating_change": match.rating_change,
             "rating_message": match.rating_message,
@@ -465,7 +468,7 @@ async def ws_game(ws: WebSocket, code: str, token: str):
                 if action == "ping":
                     await ws.send_json({"type": "pong"})
                     continue
-                if action not in ("move", "resign"):
+                if action not in ("move", "resign", "gift_time"):
                     await ws.send_json({"type": "error", "message": "Unbekannte Aktion."})
                     continue
                 match = room.matches.get(board_id)
@@ -478,6 +481,16 @@ async def ws_game(ws: WebSocket, code: str, token: str):
                     await ws.send_json({"type": "error", "message": "Partie beendet."})
                     continue
                 host = token == room.host_token
+                if action == "gift_time":
+                    if room.rated:
+                        await ws.send_json({"type": "error", "message": "Zeit schenken ist in gewerteten Partien gesperrt."})
+                        continue
+                    if host:
+                        match.gifted_seconds_black += 15
+                    else:
+                        match.gifted_seconds_white += 15
+                    await broadcast(room)
+                    continue
                 if action == "resign":
                     match.forced_winner = "black" if host else "white"
                 else:
