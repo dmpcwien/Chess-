@@ -162,7 +162,7 @@
   <div class="actions"><button id="blindSubmit" class="secondary">Zug prüfen und spielen</button></div>
   <p class="note">Verdeckte Steine bleiben unsichtbar. Du kannst alternativ direkt zwei Felder auf dem Brett berühren. Keine Zughinweise in Blindschach.</p>
 </div>
-<div id="matchType"></div><div id="matchRating" class="rating-stats" hidden></div><p id="detail" class="small"></p><div class="actions"><button id="resign" class="danger">Aufgeben</button><button id="leave" class="secondary">Zurück</button></div>
+<div id="matchType"></div><div id="matchRating" class="rating-stats" hidden></div><p id="detail" class="small"></p><div class="actions"><button id="giftTime" class="secondary" hidden>◷ +15 Sek. schenken</button><button id="resign" class="danger">Aufgeben</button><button id="leave" class="secondary">Zurück</button></div>
 </section><p id="message" role="status"></p></main>
 <div id="qrScanner" hidden role="dialog" aria-modal="true" aria-labelledby="scannerTitle" class="scanner-dialog">
  <div class="scanner-inner"><h2 id="scannerTitle">QR-Code scannen</h2>
@@ -451,6 +451,7 @@ $("blindSubmit").onclick=()=>{
  move(uci);$("blindUci").value="";info("Zug gesendet.");
 };
 $("blindUci").onkeydown=e=>{if(e.key==="Enter")$("blindSubmit").click();};
+$("giftTime").onclick=()=>{const b=current();if(!b||b.rated||b.result||socket?.readyState!==1)return;socket.send(JSON.stringify({type:"gift_time",board_id:b.id}));};
 $("resign").onclick=()=>{const b=current();if(!b||b.result||!socket||socket.readyState!==1)return;if(confirm("Diese Partie wirklich aufgeben?"))socket.send(JSON.stringify({type:"resign",board_id:b.id}));};
 function current(){const b=state?.boards||[];return b.find(x=>x.id===active)||b[0]||null;}
 function parse(fen){
@@ -540,6 +541,10 @@ function render(){
  if(!state.boards.some(x=>x.id===active))active=state.boards[0].id;
  for(const b of state.boards){const btn=document.createElement("button");btn.className=b.id===active?"active":"";btn.textContent="♟ "+b.guest_name+(b.result?" · "+b.result:"");btn.onclick=()=>{active=b.id;selected=null;drop=null;render();};tabs.append(btn);}
  const b=current();renderBoard(b);renderPocket(b);
+ $("giftTime").hidden=!!b.rated||!!b.result;
+ $("giftTime").disabled=socket?.readyState!==1;
+ $("giftTime").title="Nur ungewertet: Gegner erhält 15 Sekunden, ohne Abzug von deiner Zeit.";
+
  $("blindControls").hidden=!(b.blind_level>0);
  $("matchType").textContent=(b.blind_level?"Blindschach Stufe "+b.blind_level+" · ":"")
    +(b.rated?"Gewertete Partie – Glicko-2 aktiv":"Ungewertete Partie – kein Einfluss aufs Rating");
@@ -556,7 +561,7 @@ function render(){
      +" · Gegner "+(other?.rating??"?")+points+note;
  }else m.hidden=true;
  $("state").textContent=b.result?"Ergebnis: "+b.result:(b.can_move||b.moves.length)?"Du bist am Zug"+(b.check?" · Schach!":""):"Gegner ist am Zug"+(b.check?" · Schach!":"");
- $("detail").textContent="Züge: "+b.history.length+" · "+(b.chess960?"Schach960-Rochade aktiv":"Server prüft alle Züge")+(state.room.mode==="simul"?" · Bretter: "+state.boards.length:"");
+ $("detail").textContent="Zeit geschenkt: Weiß +"+(b.gifted_seconds?.white||0)+" s · Schwarz +"+(b.gifted_seconds?.black||0)+" s · Züge: "+b.history.length+" · "+(b.chess960?"Schach960-Rochade aktiv":"Server prüft alle Züge")+(state.room.mode==="simul"?" · Bretter: "+state.boards.length:"");
  $("resign").disabled=!!b.result;
 }
 const previous=localStorage.getItem("chess1001_online_session");
