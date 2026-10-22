@@ -181,7 +181,7 @@ restore();
 // V5.54: Eine laufende Altpartie mit weniger als zwei Halbzügen darf
 // nicht bereits herunterzählen. Für ältere abgeschlossene Partien werden
 // keine gespeicherten Uhren verändert.
-if(!gameResult&&record.length<2){clock=newClock();}
+if(!gameResult&&record.length===0){clock=newClock();}
 // Diese Einstellung ist absichtlich bei Erstinstallation AUS.
 setup.showBestMove=setup.showBestMove===true;
 setup.coachEnabled=setup.coachEnabled!==false;
@@ -379,8 +379,7 @@ function clockAfterMove(movingSide){
  // record wird erst NACH dieser Funktion um den aktuellen Zug ergänzt.
  // Zug 1 (Weiß): beide Uhren bleiben stehen. Zug 2 (Schwarz): erst danach
  // läuft Weiß. Kein Zeitabzug und kein Inkrement für diese zwei Züge.
- if(record.length<1){clock.active=null;clock.started=false;clock.lastAt=0;return;}
- if(record.length===1){clock.started=true;clock.active=W;clock.lastAt=Date.now();return;}
+ if(record.length<1){clock.started=true;clock.active=enemy(movingSide);clock.lastAt=Date.now();return;}
  if(!clock.started){clock.started=true;clock.active=movingSide;clock.lastAt=Date.now()}
  updateClock();if(gameResult)return;
  const t=chosenTime();if(t.type==='daily'){clock[movingSide]=t.ms;clock[enemy(movingSide)]=t.ms;}
