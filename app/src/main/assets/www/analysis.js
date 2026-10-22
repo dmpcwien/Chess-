@@ -3348,11 +3348,10 @@ function v555SyncSetup(){
  elem('v555Time').closest('.v555SelectLine').hidden=online;
  document.querySelectorAll('#v555Setup [data-v555side]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v555side===v555SelectedSide)));
  const variant=elem('v558Variant')?.value||'standard';
- const offlineSupported=variant==='standard'||variant==='blind1'||variant==='blind2'||variant==='blind3'||variant==='blind4'||variant==='blind5';
- const onlyOnline=!online&&!offlineSupported;
+ const onlyOnline=!online&&variant!=='standard';
  elem('v555SetNote').textContent=online
  ?'Deine Einstellungen sind übernommen. Suche einen Gegner oder erstelle eine private Partie mit QR-Code bzw. Einladungslink. Rating nur mit ausdrücklicher Auswahl.'
- :onlyOnline?'Diese Sondervariante benötigt eigene Regeln und wird derzeit nur online unterstützt. Offline sind klassisches Schach und Blindschach verfügbar.'
+ :onlyOnline?'Diese Sondervariante benötigt eigene Regeln und wird derzeit nur online unterstützt. Offline ist klassisches Schach verfügbar.'
  :v555CurrentMode==='free'?'Zwei Personen spielen abwechselnd am selben Gerät.'
  :v555CurrentMode==='coach'?'Offline gegen Stockfish mit Trainer – ohne Internet.'
  :'Offline gegen Stockfish: wähle die Stärke und starte direkt auf dem lokalen Schachbrett.';
@@ -3385,7 +3384,7 @@ function v555Start(){
  const mode=elem('v555Mode').value;
  const variant=elem('v558Variant')?.value||'standard';
  if(mode==='online'){v559OpenOnline();return;}
- if(!['standard','blind1','blind2','blind3','blind4','blind5'].includes(variant)){
+ if(variant!=='standard'){
   elem('v555SetNote').textContent='Diese Variante benötigt eigene Zugregeln und ist offline noch nicht verfügbar. Bitte klassisches Schach, Blindschach oder Online wählen.';
   elem('v558Variant').focus();
   return;
@@ -3397,7 +3396,6 @@ function v555Start(){
  v553Prefs.pieces=elem('v555Pieces').value;v553Prefs.board=elem('v555Board').value;v553Save();v553ApplyLook();
  setCoachVisibility(mode==='coach');
  gameNew();v555EnterPlay();
- if(variant.startsWith('blind')){const message=elem('v555SetNote');if(message)message.textContent='Blindschach: Merke dir die Position. Die Zugregeln entsprechen klassischem Schach.';}
 }
 function v555Init(goPage){
  if(v555Inited)return;v555Inited=true;
