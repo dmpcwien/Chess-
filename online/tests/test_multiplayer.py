@@ -50,3 +50,43 @@ def test_server_rejects_illegal_and_out_of_turn_moves():
                 assert after_white["boards"][0]["history"] == ["e2e4"]
                 assert "e7e5" in after_black["boards"][0]["moves"]
     rooms.clear()
+
+
+def test_unrated_online_time_gift_is_server_authorized_and_synced():
+    rooms.clear()
+    with TestClient(app) as client:
+        host = client.post("/api/rooms", json={"name": "Alice", "mode": "standard", "rated": False}).json()
+        guest = client.post(f"/api/rooms/{host['code']}/join", json={"name": "Bob"}).json()
+        bid = guest["board_id"]
+        with client.websocket_connect(f"/ws/{host['code']}/{host['token']}") as host_ws:
+            host_ws.receive_json()
+            with client.websocket_connect(f"/ws/{host['code']}/{guest['token']}") as guest_ws:
+                host_ws.receive_json()
+                guest_ws.receive_json()
+                host_ws.send_json({"type": "gift_time", "board_id": bid})
+                a = host_ws.receive_json()
+                b = guest_ws.receive_json()
+                assert a["boards"][0]["gifted_seconds"] == {"white": 0, "black": 15}
+                assert b["boards"][0]["gifted_seconds"] == {"white": 0, "black": 15}
+                guest_ws.send_json({"type": "gift_time", "board_id": bid})
+                assert guest_ws.receive_json()["boards"][0]["gifted_seconds"] == {"white": 15, "black": 15}
+                assert host_ws.receive_json()["boards"][0]["gifted_seconds"] == {"white": 15, "black": 15}
+    rooms.clear()
+
+
+def test_rated_online_time_gift_is_rejected():
+    rooms.clear()
+    with TestClient(app) as client:
+        host = client.post("/api/rooms", json={"name": "Alice", "mode": "standard", "rated": True}).json()
+        guest = client.post(f"/api/rooms/{host['code']}/join", json={"name": "Bob"}).json()
+        bid = guest["board_id"]
+        with client.websocket_connect(f"/ws/{host['code']}/{host['token']}") as host_ws:
+            host_ws.receive_json()
+            with client.websocket_connect(f"/ws/{host['code']}/{guest['token']}") as guest_ws:
+                host_ws.receive_json()
+                guest_ws.receive_json()
+                host_ws.send_json({"type": "gift_time", "board_id": bid})
+                error = host_ws.receive_json()
+                assert error["type"] == "error"
+                assert rooms[host["code"]].matches[bid].gifted_seconds_black == 0
+    rooms.clear()
