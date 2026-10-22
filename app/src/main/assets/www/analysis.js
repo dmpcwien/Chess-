@@ -441,8 +441,14 @@ async function scheduleComputer(){
   }catch(e){if(t===token)setNote('Stockfish konnte den Zug nicht berechnen. '+(e?.message||'')+' Einfacher Notfallgegner übernimmt.',true)}
  }
  if(t!==token){busy=false;render();return}
- if(!chosen&&plan){busy=false;render();setNote('Stockfish konnte keinen starken Zug liefern. Die Stufe '+setup.elo+' wird nicht durch einen schwachen Notfallgegner ersetzt. Bitte später erneut versuchen oder niedrigere Stärke wählen.',true);return}
- if(!chosen){const level=Math.max(1,Math.min(9,Math.round((Math.min(setup.elo,2000)-400)/200)+1)),item=think(pos,level);chosen=item&&item.m}
+ if(!chosen&&plan){
+  // A stalled engine must never leave the opponent unable to move.
+  // The built-in fallback is not advertised as equivalent to the selected Stockfish Elo.
+  setNote('Stockfish hat keinen Zug geliefert. Der Offline-Ersatzgegner übernimmt diesen Zug.',true);
+ }
+
+ if(!chosen){try{const level=Math.max(1,Math.min(9,Math.round((Math.min(setup.elo,2000)-400)/200)+1)),item=think(pos,level);chosen=item&&item.m}catch(err){setNote('Ersatzgegner: '+(err?.message||'Berechnung fehlgeschlagen'),true)}}
+ if(!chosen){const all=legal(pos);if(all.length){chosen=all[Math.floor(Math.random()*all.length)];setNote('Notfallzug gespielt. Die gewählte Bot-Stärke konnte nicht garantiert werden.',true)}}
  // Ab 2000 ELO niemals den schwächeren Stile-Umweg verwenden.
  if(chosen&&engineUsed==='offline'&&!plan&&v58prefs.style!=='ausgeglichen')chosen=v58StyledMove(pos,chosen);
  busy=false;if(t!==token||gameResult)return;
