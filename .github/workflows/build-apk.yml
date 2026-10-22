@@ -68,7 +68,7 @@ jobs:
       - name: Neue Paket-ID setzen
         shell: bash
         run: |
-          grep -rl 'at\.schach1001\.pro' . --exclude-dir=.git | xargs -r sed -i 's/at\.schach1001\.pro/at.schach1001.pro2/g'
+          grep -rl 'at\.schach1001\.pro' . --exclude-dir=.git | xargs -r sed -i -E 's/at\.schach1001\.pro([0-9]+)?/at.schach1001.pro8/g'
       - name: Java 17 einrichten
         uses: actions/setup-java@v4
         with:
