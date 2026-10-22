@@ -1,0 +1,26 @@
+{
+  "name": "Schach 1001+ Taktik Coach",
+  "short_name": "Schach 1001+",
+  "description": "1041 Schachrätsel mit deutschem Coach, Taktikmotiven und Stockfish-Analyse.",
+  "lang": "de",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#121417",
+  "theme_color": "#121417",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

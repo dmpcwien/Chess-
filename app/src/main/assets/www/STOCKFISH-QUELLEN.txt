@@ -1,0 +1,5 @@
+Stockfish.js 19 (c) Chess.com, LLC, GPL-3.0.
+Original Stockfish-19-lite-single.js und .wasm vom Nutzer bereitgestellt.
+Originalquellen, Lizenz, Build-Anweisungen: https://github.com/nmrugg/stockfish.js/tree/v19.0.0
+Engine wurde unverändert als JavaScript und WASM in stockfish-local-assets.js kodiert (Base64 fuer WASM).
+Die Schach-App benutzt die Engine in einem separaten Worker und UCI-Nachrichten.

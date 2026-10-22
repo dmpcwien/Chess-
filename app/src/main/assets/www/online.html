@@ -1,0 +1,10 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Schach Pro V5.59 · Online</title><style>*{box-sizing:border-box}html,body{height:100%;margin:0;background:#08090d;color:#e7c379;font:14px system-ui}
+header{height:54px;display:flex;align-items:center;gap:11px;padding:7px 12px;background:linear-gradient(90deg,#151719,#3c2a12);border-bottom:1px solid #98723a}
+header strong{flex:1;font-size:15px}header button{padding:9px 12px;border:1px solid #c39441;border-radius:10px;background:#14171b;color:#f5d491;font:inherit;font-weight:700}
+iframe{height:calc(100% - 54px);width:100%;display:block;border:0}#offline{display:none;padding:14px;color:#ffcf88;text-align:center}
+</style></head><body><header><button onclick="location.href='index.html'">← Schach Pro</button><strong>♞ Online & Varianten</strong></header>
+<iframe id="game" src="https://schach-1001-online.onrender.com/" allow="camera; web-share; clipboard-read; clipboard-write" title="Schach Pro Online, Blindschach und Glicko-2"></iframe>
+<div id="offline">Für Online-Partien brauchst du Internet. Dein bestehendes Offline-Schach bleibt verfügbar.</div>
+<script>(function(){const p=new URLSearchParams(location.search),u=new URL('https://schach-1001-online.onrender.com/');for(const key of ['invite','mode','scan','fromapp','name','rated','match','board']){if(p.has(key))u.searchParams.set(key,p.get(key).slice(0,256));}document.getElementById('game').src=u.toString();})();window.addEventListener('offline',()=>{document.getElementById('offline').style.display='block'});window.addEventListener('online',()=>{document.getElementById('offline').style.display='none'});</script>
+</body></html>
