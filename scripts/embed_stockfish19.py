@@ -15,7 +15,7 @@ if len(sys.argv) != 4:
 js_path, wasm_path, output_path = map(pathlib.Path, sys.argv[1:])
 js = js_path.read_text(encoding="utf-8")
 wasm = wasm_path.read_bytes()
-if len(js) < 10_000 or len(wasm) < 100_000 or not wasm.startswith(b"\\x00asm"):
+if len(js) < 10_000 or len(wasm) < 100_000 or not wasm.startswith(bytes.fromhex("0061736d")):
     raise SystemExit("Invalid or incomplete Stockfish 19 JS/WASM assets")
 if "stockfish" not in js.lower():
     raise SystemExit("Unexpected JS engine file")
