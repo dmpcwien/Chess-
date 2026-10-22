@@ -37,6 +37,22 @@ class ChessControls(unittest.TestCase):
         self.assertNotIn("think(pos,", bot)
         self.assertNotIn("v58StyledMove", bot)
 
+    def test_stockfish_worker_recovers_after_timeout(self):
+        self.assertIn("Stockfish-Antwort dauert zu lange; Engine wurde zurückgesetzt", HTML)
+        self.assertIn("w.terminate()", HTML)
+        self.assertIn("sfWorker=null", HTML)
+        self.assertIn("stockfishCache.clear()", HTML)
+
+    def test_local_two_player_board_rotation_and_clock_gift(self):
+        self.assertIn("flip=pos.turn==='b'", JS)
+        self.assertIn("v561PersonLayout()", JS)
+        self.assertIn("id=\\"v561AddTime\\"", JS)
+        self.assertIn("clock[recipient]=Math.max(0,clock[recipient])+15000", JS)
+
+    def test_clock_ticks_in_active_game(self):
+        self.assertIn("v555Phase==='play'&&isTimed()", JS)
+        self.assertIn("if(ms<60000)", JS)
+
     def test_undo_not_disabled_while_engine_thinks(self):
         self.assertIn("elem('gameUndo').disabled=!record.length;", JS)
 
