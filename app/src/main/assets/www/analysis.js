@@ -217,7 +217,7 @@ function updateClock(){
  clock[side]=Math.max(0,clock[side]-elapsed);clock.lastAt=now;
  if(clock[side]<=0){clock.finished=side;gameResult=(side===W?'Schwarz':'Weiß')+' gewinnt auf Zeit';token++;busy=false;persist();archiveGame();setNote(gameResult,true);render();}
 }
-function fmtTime(ms){ms=Math.max(0,Math.ceil(ms));if(ms>=86400000)return Math.ceil(ms/86400000)+' T';if(ms>=3600000){const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);return h+':'+String(m).padStart(2,'0')+':00';}const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);if(ms<20000)return m+':'+String(s).padStart(2,'0')+'.'+Math.floor((ms%1000)/100);return m+':'+String(s).padStart(2,'0');}
+function fmtTime(ms){ms=Math.max(0,Math.ceil(ms));if(ms>=86400000)return Math.ceil(ms/86400000)+' T';if(ms>=3600000){const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);return h+':'+String(m).padStart(2,'0')+':00';}const m=Math.floor(ms/60000),s=Math.floor((ms%60000)/1000);if(ms<60000)return m+':'+String(s).padStart(2,'0')+'.'+Math.floor((ms%1000)/100);return m+':'+String(s).padStart(2,'0');}
 function paintClock(){let white=elem('gameClockW'),black=elem('gameClockB');if(!white||!black)return;
  const hide=!isTimed();elem('gameClocks').hidden=hide;
  for(const side of [W,B]){let node=elem(side===W?'gameClockW':'gameClockB');node.querySelector('strong').textContent=hide?'–':fmtTime(clock[side]);node.classList.toggle('clockRunning',!hide&&clock.started&&!clock.finished&&!gameResult&&clock.active===side);node.classList.toggle('clockExpired',!!clock.finished&&clock.finished===side);}
@@ -2610,7 +2610,7 @@ function init(){
  elem('customApply').onclick=()=>{setup.customMin=Math.max(1,Math.min(120,Math.round(+elem('customMin').value||10)));setup.customInc=Math.max(0,Math.min(60,Math.round(+elem('customInc').value||0)));setup.time='custom';gameNew();elem('clockSettings').open=false};
  v555Init(goPage);
  bindDrag();render();refreshCoach();let saved='';try{saved=localStorage.getItem('schach1001_page')}catch(_){}show(saved==='training'?'training':saved==='game'?'game':saved==='stats'?'stats':saved==='puzzles'?'puzzles':'home');
- timerHandle=setInterval(()=>{if(!elem('gameContent').hidden&&game.dataset.v526Page==='game'&&!document.body.classList.contains('v555Setup')&&isTimed()){updateClock();paintClock()}},100);
+ timerHandle=setInterval(()=>{if(!elem('gameContent').hidden&&v555Phase==='play'&&isTimed()){updateClock();paintClock()}},100);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){updateClock();paintClock()}});
 }
 // Nur für eigene Tests, enthält keine Nutzerinformationen.
