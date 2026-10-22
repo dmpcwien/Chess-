@@ -1279,6 +1279,17 @@ body.v555Playing #gameContent #v555PlayActions button span{font-size:22px}
 #v555Setup button:focus-visible,#v555Setup select:focus-visible,#v555Setup input:focus-visible{outline:2px solid #efd489;outline-offset:3px}
 @media(max-width:360px){#v555Setup .v555OptionGrid{grid-template-columns:1fr}#v555Setup .v555OptionGrid>label{grid-column:1/-1}#v555Setup .v555SideRow{gap:5px}}
 </style>
+
+<!-- V559-BOARD-MOBILE-FIX -->
+<style>
+/* Mobile: chessboard stays square, centered, and never expands beyond the viewport. */
+.gameBoard,.v529Board,.v538Board{box-sizing:border-box;width:100%;max-width:min(100%,720px);height:auto;aspect-ratio:1/1;min-width:0;flex-shrink:0;overscroll-behavior:contain}
+.gameBoardPanel,.v529BoardPanel,.v538BoardPanel{min-width:0;max-width:100%}
+@media(max-width:600px){
+.gameBoard,.v529Board,.v538Board{max-width:100%;margin-left:auto;margin-right:auto}
+.gameSq,.v529Sq,.v538Sq{min-width:0;min-height:0}
+}
+</style>
 </head>
 <body><main class="app">
 <div class="top"><div class="brand"><h1>♟ Schach 1001+ Pro</h1><p>Matt · Gabel · Spieß · Abzug · Opfer · Eröffnungsfallen · deutscher Schach-Coach · Stockfish für Analysen</p></div><div class="badge" id="pnum">Rätsel 1</div></div>
