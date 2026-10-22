@@ -1,0 +1,33 @@
+name: Schach Pro V5.59 Android Test APK
+on:
+  push:
+    branches: [schach-v559-neustart]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify V5.59 assets
+        run: |
+          test -s app/src/main/assets/www/index.html
+          test -s app/src/main/java/at/schachpro/neustart/MainActivity.java
+      - name: Build debug APK
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Schach-Pro-V559-Neustart-Test-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
