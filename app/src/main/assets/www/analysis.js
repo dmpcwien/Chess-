@@ -3385,10 +3385,19 @@ function v561PersonLayout(){
   top=document.createElement('div');top.id='v561TopPlayer';top.className='v561PersonPlayer';
   bottom=document.createElement('div');bottom.id='v561BottomPlayer';bottom.className='v561PersonPlayer';
   nav=document.createElement('nav');nav.id='v561PersonNav';
-  nav.innerHTML='<button type="button" id="v561Options">☷<small>Optionen</small></button><button type="button" id="v561Pause">Ⅱ<small>Pause</small></button><button type="button" id="v561Back">❮<small>Zurück</small></button><button type="button" id="v561Forward">❯<small>Vor</small></button>';
+  nav.innerHTML='<button type="button" id="v561Options">☷<small>Optionen</small></button><button type="button" id="v561Pause">Ⅱ<small>Pause</small></button><button type="button" id="v561AddTime">◷<small>+15 Sek.</small></button><button type="button" id="v561Back">❮<small>Zurück</small></button><button type="button" id="v561Forward">❯<small>Vor</small></button>';
   panel.prepend(strip,top);panel.append(bottom,nav);
   elem('v561Options').onclick=()=>v555GoSetup();
   elem('v561Pause').onclick=()=>{if(!clock.started){if(!clock.active||gameResult)return;clock.started=true;clock.lastAt=Date.now();elem('v561Pause').querySelector('small').textContent='Pause';paintClock();return}updateClock();clock.started=false;clock.lastAt=0;paintClock();elem('v561Pause').querySelector('small').textContent='Weiter';};
+  elem('v561AddTime').onclick=()=>{
+   if(setup.mode!=='free'||!isTimed()||gameResult)return;
+   updateClock();
+   if(gameResult)return;
+   const recipient=pos.turn===W?B:W;
+   clock[recipient]=Math.max(0,clock[recipient])+15000;
+   paintClock();persist();
+   setNote('15 Sekunden für '+(recipient===W?'Weiß':'Schwarz')+' hinzugefügt. Deine eigene Uhr bleibt unverändert.');
+  };
   elem('v561Back').onclick=()=>changeReviewPly(-1);
   elem('v561Forward').onclick=()=>changeReviewPly(1);
  }
